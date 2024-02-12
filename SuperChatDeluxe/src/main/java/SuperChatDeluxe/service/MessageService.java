@@ -21,8 +21,8 @@ public class MessageService {
 			return newMessage;
 		}
 		
-		public List<Message> getMessageHistory(){
+		public List<Message> getMessageHistory(String username){
 			
-			return null;
+			return repo.getMessagesByLatest(username);
 		}
 }
