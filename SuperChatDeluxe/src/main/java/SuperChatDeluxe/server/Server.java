@@ -1,4 +1,4 @@
-package server;
+package SuperChatDeluxe.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
