@@ -47,24 +47,22 @@ public class Client {
 	}
 
 //	send message to client handler
-	public void sendMessage() {
-		try {
-			bufferedWriter.write(username);
+	public void sendMessage(Scanner scanner) {
+	try {
+		bufferedWriter.write(username);
+		bufferedWriter.newLine();
+		bufferedWriter.flush();
+
+		while (socket.isConnected() && scanner.hasNextLine()) {
+			String messageToSend = scanner.nextLine();
+			bufferedWriter.write(username + ": " + messageToSend);
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
-
-			Scanner scanner = new Scanner(System.in);
-			while(socket.isConnected()) {
-				String messageToSend = scanner.nextLine();
-				bufferedWriter.write(username + ": " + messageToSend);
-				bufferedWriter.newLine();
-				bufferedWriter.flush();
-			}
 		}
-		catch(IOException e) {
-			closeEverything(socket, bufferedReader, bufferedWriter);
-		}
+	} catch (IOException e) {
+		closeEverything(socket, bufferedReader, bufferedWriter);
 	}
+}
 
 	public void listenForMessage() {
 		new Thread(new Runnable() {
@@ -88,15 +86,20 @@ public class Client {
 	}
 
 	public static void main(String[] args) throws UnknownHostException, IOException {
-		Scanner scanner = new Scanner(System.in);
-		System.out.println("Enter your username for the group chat: ");
-		String username = scanner.nextLine();
+    Scanner scanner = new Scanner(System.in);
+    System.out.println("Enter your username for the group chat: ");
+    String username = scanner.nextLine();
 
-		Socket socket = new Socket("localhost", 5050);
-		Client client = new Client(socket, username);
-
-
-		client.listenForMessage();
-		client.sendMessage();
-	}
+    try (Socket socket = new Socket("localhost", 5050)) {
+        Client client = new Client(socket, username);
+        client.listenForMessage();
+        client.sendMessage(scanner); // Pass the scanner to sendMessage
+    } catch (Exception e) {
+        e.printStackTrace();
+    } finally {
+        if (scanner != null) {
+            scanner.close(); // Close the scanner here
+        }
+    }
+}
 }
