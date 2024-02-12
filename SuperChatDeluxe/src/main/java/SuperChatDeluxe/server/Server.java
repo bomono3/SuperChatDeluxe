@@ -36,11 +36,24 @@ public class Server {
     // Broadcasts a message to all clients except the sender
     public static void broadcastMessage(String message, ClientHandler sender) {
         synchronized (clients) { // Synchronize on the clients list to ensure thread safety during iteration
-            for (ClientHandler client : clients) {
+        	for (ClientHandler client : clients) {
                 if (client != sender) {
                     client.sendMessage(message);
                 }
             }
+        }
+    }
+    
+    public static void privateMessage(String message, String username, ClientHandler sender) {
+    	synchronized (clients) { // Synchronize on the clients list to ensure thread safety during iteration
+    		for (ClientHandler client : clients) {
+                if (client != sender && client.getUsername().equals(username)) {
+                    client.sendMessage(message);
+                    return;
+                }
+            }
+    		
+    		sender.sendMessage("User with username " + username + " does not exist.");
         }
     }
 }
