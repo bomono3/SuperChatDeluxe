@@ -14,6 +14,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import SuperChatDeluxe.filter.JwtRequestFilter;
+
 
 @Configuration
 @EnableWebSecurity
@@ -22,6 +26,8 @@ public class SecurityConfig {
 	@Autowired
 	UserDetailsService userDetailsService;
 	
+	@Autowired
+	JwtRequestFilter jwtRequestFilter;
 	
 	@Bean
 	protected UserDetailsService userDetailsService() {
@@ -34,17 +40,19 @@ public class SecurityConfig {
         http.csrf().disable()
         .authorizeHttpRequests()
         .requestMatchers(HttpMethod.POST,"/api/register").permitAll()
-        .requestMatchers("/authenticate").permitAll()
+        .requestMatchers( HttpMethod.POST,"/authenticate").permitAll()
         .anyRequest().authenticated()
         .and()
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        
+        http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         
         
     	return http.build();
     }
 
     @Bean
-    protected PasswordEncoder passwordEncoder() {
+    protected PasswordEncoder encode() {
         return new BCryptPasswordEncoder();
     }
     
@@ -54,7 +62,7 @@ public class SecurityConfig {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         
         authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder());
+        authProvider.setPasswordEncoder(encode());
         
         return authProvider;
     }
