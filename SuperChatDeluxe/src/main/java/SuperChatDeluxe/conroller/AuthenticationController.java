@@ -38,7 +38,7 @@ public class AuthenticationController {
 
 		} 
 		catch (Exception e) {
-			e.printStackTrace();
+			throw new Error("Invalid Credentials");
 		}
 
 
