@@ -18,20 +18,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf().disable()
         .authorizeHttpRequests()
-        .requestMatchers(AUTH_WHITE_LIST).permitAll()
-        .requestMatchers(HttpMethod.POST,"/api/admin/").hasRole("ADMIN")
-        .requestMatchers(HttpMethod.PATCH,"/api/admin/").hasRole("ADMIN")
-        .requestMatchers(HttpMethod.POST,"/api/register/").permitAll()
-        .requestMatchers(HttpMethod.PATCH,"/api/registration/").permitAll()
-        .requestMatchers(HttpMethod.GET,"/api/users/search/").permitAll()
-        .requestMatchers(HttpMethod.GET,"/api/recipes/favorites/users/").permitAll()
-        .requestMatchers(HttpMethod.GET,"/api/recipes/search/").permitAll()
-        .requestMatchers(HttpMethod.GET,"/api/users").permitAll()
-        .requestMatchers(HttpMethod.GET,"/api/users/").permitAll()
+        .requestMatchers(HttpMethod.POST,"/register").permitAll()
         .requestMatchers("/authenticate").permitAll()
         .anyRequest().authenticated()
         .and()
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        
+        
+    	return http.build();
     }
 
     @Bean
