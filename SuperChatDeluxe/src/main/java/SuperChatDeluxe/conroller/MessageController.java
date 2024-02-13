@@ -1,5 +1,6 @@
 package SuperChatDeluxe.conroller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,5 +33,16 @@ public class MessageController {
 	public List<Message> getMessageHistory(@PathVariable String username){
 		
 		return service.getMessageHistory(username);
+	}
+	
+	@GetMapping("/message/last/{limit}")
+	public List<Message> getLastMessages(@PathVariable int limit){
+		return service.getLastMessages(limit);
+	}
+
+	@GetMapping("/message/gone/{username}/{startDate}/{endDate}")
+	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDate, @PathVariable LocalDateTime endDate){
+		
+		return service.getMessageWhileGone(username, startDate, endDate);
 	}
 }
