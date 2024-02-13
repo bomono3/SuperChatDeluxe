@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.repository.UserRepository;
 
+
 @Service
 public class UserServiceImpl implements UserService {
 

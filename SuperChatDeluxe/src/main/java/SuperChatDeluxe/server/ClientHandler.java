@@ -5,9 +5,8 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.List;
+
 
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
@@ -38,10 +37,10 @@ public class ClientHandler implements Runnable {
 					if(clientMessage == null) throw new IOException();
 					String messageWithoutUsername = clientMessage.split(": ", 2)[1];
 					boolean potentialPrivateMessage = messageWithoutUsername.length() >= 8;
-					
+
 					if(potentialPrivateMessage && messageWithoutUsername.substring(0,8).contains("-private")) {
             		String[] messageComponents = messageWithoutUsername.split(" ");
-         
+
             			if(messageComponents.length < 3 ) {
             			sendMessage("Private command incomplete. Must contain (-private, username, message)");
             			}
@@ -61,10 +60,10 @@ public class ClientHandler implements Runnable {
 					closeEverything(clientSocket, out, in);
 					break;
 				}
-            	
-            	
-            	
-                
+
+
+
+
             }
     }
 
@@ -76,7 +75,7 @@ public class ClientHandler implements Runnable {
 		} catch (IOException e) {
 			closeEverything(clientSocket, out, in);
 		}
-		
+
     }
 
     private void closeEverything(Socket socket, BufferedWriter out, BufferedReader in) {
@@ -92,7 +91,7 @@ public class ClientHandler implements Runnable {
             e.printStackTrace();
         }
     }
-    
+
     public String getUsername() {
     	return this.username;
     }
