@@ -21,6 +21,7 @@ public class ClientHandler implements Runnable {
             this.out =  new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
             this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             this.username = in.readLine();
+            Server.broadcastMessage("SERVER: " + username + " has entered the chat!", this);
         } catch (IOException e) {
             closeEverything(socket, out, in);
         }
@@ -29,39 +30,42 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         String clientMessage;
-        try {
-            while ((clientMessage = in.readLine()) != null) {
-                // For simplicity, directly calling broadcastMessage without specifying sender
-                // In a real application, you might want to exclude the sender or add other
-                // logic
-            	
-            	String messageWithoutUsername = clientMessage.split(": ", 2)[1];
-            	boolean potentialPrivateMessage = messageWithoutUsername.length() >= 8;
-            	
-            	if(potentialPrivateMessage && messageWithoutUsername.substring(0,8).contains("-private")) {
+
+            while (clientSocket.isConnected()) {
+
+            	try {
+					clientMessage = in.readLine();
+					if(clientMessage == null) throw new IOException();
+					String messageWithoutUsername = clientMessage.split(": ", 2)[1];
+					boolean potentialPrivateMessage = messageWithoutUsername.length() >= 8;
+					
+					if(potentialPrivateMessage && messageWithoutUsername.substring(0,8).contains("-private")) {
             		String[] messageComponents = messageWithoutUsername.split(" ");
          
-            		if(messageComponents.length < 3 ) {
+            			if(messageComponents.length < 3 ) {
             			sendMessage("Private command incomplete. Must contain (-private, username, message)");
-            		}
-            		else {
+            			}
+            			else {
             			String[] newMessageComponent = messageWithoutUsername.split(" ", 3);
             			String newMessage = username + "(private): " + newMessageComponent[2];
             			Server.privateMessage(newMessage, messageComponents[1], this);
-            		}
-            	}
-            	else {
+            			}
+					}
+					else {
             		Server.broadcastMessage(clientMessage, this);
-            	}
+					}
+				} catch (IOException e) {
+		            synchronized (Server.clients) {
+	                Server.clients.remove(this);
+	            }
+					closeEverything(clientSocket, out, in);
+					break;
+				}
+            	
+            	
+            	
                 
             }
-        } catch (IOException e) {
-            closeEverything(clientSocket, out, in);
-            // Properly remove the client handler from the list on exception
-            synchronized (Server.clients) {
-                Server.clients.remove(this);
-            }
-        }
     }
 
     public void sendMessage(String message) {
@@ -76,6 +80,7 @@ public class ClientHandler implements Runnable {
     }
 
     private void closeEverything(Socket socket, BufferedWriter out, BufferedReader in) {
+    	Server.broadcastMessage("SERVER: " + username + " has left the chat!", this);
         try {
             if (in != null)
                 in.close();
