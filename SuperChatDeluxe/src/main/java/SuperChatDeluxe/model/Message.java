@@ -3,8 +3,10 @@ package SuperChatDeluxe.model;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,11 +35,11 @@ public class Message implements Serializable {
 	@Column(nullable = false)
 	private LocalDateTime timeSent;
 	
-	@ManyToOne
+	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "username", referencedColumnName = "username")
 	private User username;
 	
-	@ManyToOne
+	@ManyToOne(cascade = CascadeType.ALL)
 	@JoinColumn(name = "sent_to", referencedColumnName = "username", nullable = true)
 	private User sentTo;
 	
