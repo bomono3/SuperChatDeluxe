@@ -140,8 +140,10 @@ public class Client {
 			System.out.print("Enter your username: ");
 			String username = scanner.nextLine();
 			Client client = new Client(socket, username);
+
 			client.listenForMessage();
 			client.handleUserInput();
+
 			scanner.close();
 		} catch (IOException e) {
 			e.printStackTrace();
