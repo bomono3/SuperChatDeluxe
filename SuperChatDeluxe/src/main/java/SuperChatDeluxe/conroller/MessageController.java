@@ -40,9 +40,9 @@ public class MessageController {
 		return service.getLastMessages(limit);
 	}
 
-	@GetMapping("/message/gone/{username}/{startDate}/{endDate}")
-	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDate, @PathVariable LocalDateTime endDate){
+	@GetMapping("/message/gone/{username}/{startDateTime}/{endDateTime}")
+	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDateTime, @PathVariable LocalDateTime endDateTime){
 
-		return service.getMessageWhileGone(username, startDate, endDate);
+		return service.getMessageWhileGone(username, startDateTime, endDateTime);
 	}
 }
