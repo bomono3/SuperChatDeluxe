@@ -1,57 +1,57 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <groupId>SuperChatDeluxe</groupId>
-  <artifactId>SuperChatDeluxe</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+	<groupId>SuperChatDeluxe</groupId>
+	<artifactId>SuperChatDeluxe</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
 
-  <name>SuperChatDeluxe</name>
-  <description>A simple SuperChatDeluxe.</description>
-  <!-- FIXME change it to the project's website -->
-  <url>http://www.example.com</url>
+	<name>SuperChatDeluxe</name>
+	<description>A simple SuperChatDeluxe.</description>
+	<!-- FIXME change it to the project's website -->
+	<url>http://www.example.com</url>
 
-    <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
-    </parent>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.2.0</version>
+	</parent>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <java.version>17</java.version>
-  </properties>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<java.version>17</java.version>
+	</properties>
 
 
-  <dependencies>
+	<dependencies>
 
-    <!-- Spring Boot Starter Web, includes Tomcat and Spring MVC -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
+		<!-- Spring Boot Starter Web, includes Tomcat and Spring MVC -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
 
-        <!-- Spring Boot Starter Security -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
+		<!-- Spring Boot Starter Security -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
 
-        <!-- Spring Boot Starter Data JPA, for database access -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
+		<!-- Spring Boot Starter Data JPA, for database access -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
 
-        <!-- H2 Database, for in-memory database -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+		<!-- H2 Database, for in-memory database -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
 
          <dependency>
 			<groupId>com.mysql</groupId>
@@ -79,13 +79,12 @@
 		</dependency>
 
 
-
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
-        <scope>test</scope>
-      </dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.13.2</version>
+			<scope>test</scope>
+		</dependency>
 
       <!-- Use the version compatible with your Jackson setup -->
     <dependency>
@@ -94,7 +93,8 @@
       <version>2.13.0</version> <!-- Use the version compatible with your Jackson setup -->
     </dependency>
 
-  </dependencies>
+	</dependencies>
+
 
   <build>
     <plugins>
@@ -105,9 +105,7 @@
       </plugin>
 
 
-      <!-- Other plugins can be declared here -->
-
-
+	<!-- Other plugins can be declared here -->
     </plugins>
     <pluginManagement>
       <plugins>
@@ -158,11 +156,11 @@
     </pluginManagement>
   </build>
 
-  <reporting>
-    <plugins>
-      <plugin>
-        <artifactId>maven-project-info-reports-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </reporting>
+	<reporting>
+		<plugins>
+			<plugin>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</reporting>
 </project>
