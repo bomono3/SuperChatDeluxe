@@ -35,6 +35,14 @@ public class ClientHandler implements Runnable {
             	try {
 					clientMessage = in.readLine();
 					if(clientMessage == null) throw new IOException();
+
+                    // Check for control commands and handle accordingly
+                    if ("/exit".equals(clientMessage) || "/search".equals(clientMessage)) {
+                        // Do not broadcast these commands
+                        continue;
+                    }
+
+
 					String messageWithoutUsername = clientMessage.split(": ", 2)[1];
 					boolean potentialPrivateMessage = messageWithoutUsername.length() >= 8;
 
