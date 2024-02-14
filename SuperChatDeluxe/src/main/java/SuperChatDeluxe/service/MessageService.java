@@ -24,9 +24,13 @@ public class MessageService {
 		public Message sendMessage(Message message) {
 			message.setMessageId(null);
 			Optional<User> user = userRepo.findByUsername(message.getUsername().getUsername());
+			Optional<User> sentUser = message.getSentTo() == null ? null : userRepo.findByUsername(message.getSentTo().getUsername());
 			
 			if(!user.isEmpty()) {
 				message.setUsername(user.get());
+			}
+			if(sentUser != null && !sentUser.isEmpty()) {
+				message.setSentTo(sentUser.get());
 			}
 			Message newMessage = repo.save(message);
 			
