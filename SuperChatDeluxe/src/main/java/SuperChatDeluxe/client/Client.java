@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import SuperChatDeluxe.model.Message;
+import SuperChatDeluxe.service.ConsoleGuiService;
 
 
 public class Client {
@@ -31,6 +32,8 @@ public class Client {
 	// Indicates if the client is in live mode or search mode
 	private boolean live = true;
 	private List<String> missedMessages = new ArrayList<>();
+	
+	private ConsoleGuiService gui;
 
 	public Client(Socket socket, String username) {
 		try {
@@ -38,7 +41,7 @@ public class Client {
 			this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 			this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			this.username = username;
-
+			this.gui = new ConsoleGuiService();
 		}
 		catch(IOException e) {
 			closeEverything(socket, bufferedReader, bufferedWriter);
@@ -59,9 +62,22 @@ public class Client {
 	//	send message to client handler
 	public void sendMessage(String message) {
 		try {
+			gui.addMessage(message, true);
 			bufferedWriter.write(message);
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
+			
+		} catch (IOException e) {
+			closeEverything(socket, bufferedReader, bufferedWriter);
+		}
+	}
+	
+	public void sendUsername(String username) {
+		try {
+			bufferedWriter.write(username);
+			bufferedWriter.newLine();
+			bufferedWriter.flush();
+			
 		} catch (IOException e) {
 			closeEverything(socket, bufferedReader, bufferedWriter);
 		}
@@ -77,7 +93,7 @@ public class Client {
 						// In search mode, store messages instead of immediately displaying them
 						missedMessages.add(messageFromGroupChat);
 					} else {
-						System.out.println(messageFromGroupChat);
+						gui.addMessage(messageFromGroupChat, false);
 					}
 				} catch (IOException e) {
 					closeEverything(socket, bufferedReader, bufferedWriter);
@@ -87,23 +103,20 @@ public class Client {
 		}).start();
 	}
 
-	public void handleUserInput() {
-		Scanner scanner = new Scanner(System.in);
+	public void handleUserInput(Scanner scanner) {
 		while (socket.isConnected()) {
 			String input = scanner.nextLine();
-
 			// Toggle live/search mode based on user commands
 			if ("/search".equals(input.trim())) {
 				live = false; // Enter search mode
 				System.out.println("You're now in search mode. Type /exit to return to live chat.");
-				searchBetweenDates();
+				searchBetweenDates(scanner);
 
 			// Exit search mode and display missed messages
 			} else if ("/exit".equals(input.trim())) {
 				live = true;
-				missedMessages.forEach(System.out::println);
+				gui.initializeConsoleChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
 				missedMessages.clear();
-				System.out.println("Exiting search mode. You're now live.");
 
 			// Send message to server if in live mode
 			} else if (live) {
@@ -114,14 +127,13 @@ public class Client {
 	}
 
 	// This method sends a request to the server to get messages between two dates
-	public void searchBetweenDates() {
-    Scanner scanner = new Scanner(System.in);
+	public void searchBetweenDates(Scanner scanner) {
 	//should be when search between dates is selected
-    System.out.println("Enter start date (YYYY-MM-DD):");
+    gui.addMessage("Enter start date (YYYY-MM-DD):", true);
     String startDate = scanner.nextLine();
 	String startDateTime = startDate + "T00:00:01";
 	//should be when search is exited
-    System.out.println("Enter end date (YYYY-MM-DD):");
+    gui.addMessage("Enter end date (YYYY-MM-DD):", true);
     String endDate = scanner.nextLine();
 	String endDateTime = endDate + "T23:59:59";
 
@@ -143,12 +155,8 @@ public class Client {
 		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
 		List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
-
-        System.out.println("Messages between " + startDate + " and " + endDate + ":");
-
-		for (Message message : messages) {
-			System.out.println(" message: " + message.getMessage());
-		}
+        
+        gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
     } catch (Exception e) {
         e.printStackTrace();
     }
@@ -162,10 +170,10 @@ public class Client {
 			System.out.print("Enter your username: ");
 			String username = scanner.nextLine();
 			Client client = new Client(socket, username);
-
+			client.sendUsername(username);
 			client.listenForMessage();
-			client.handleUserInput();
-
+			client.gui.initializeConsoleChatGuiReturn("welcome to gamerchat", new ArrayList(), "type in console and press enter to send a message");
+			client.handleUserInput(scanner);
 			scanner.close();
 		} catch (IOException e) {
 			e.printStackTrace();

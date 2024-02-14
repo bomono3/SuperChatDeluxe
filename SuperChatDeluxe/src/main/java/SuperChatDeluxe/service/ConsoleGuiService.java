@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import SuperChatDeluxe.model.Message;
+
 @Service
 public class ConsoleGuiService {
 	
@@ -17,8 +19,11 @@ public class ConsoleGuiService {
 								+ "*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&*\n"
 								+ "****************************************************************";
 	
+	String consoleSide = "*&*                                                          *&*";
+	
+	int verticalDesignLength =(int) (consoleTop.chars().filter(ch -> ch == '\n').count() + 1);
 	// calculate chat lengths dynamically based off of provided console top/bottom.
-	int chatLengths = (int) (consoleTop.length()/(consoleTop.chars().filter(ch -> ch == '\n').count() + 1));
+	int chatLengths =  consoleTop.length()/verticalDesignLength;
 	
 	int messageLengths = chatLengths - generalizedChatString.length()*2;
 	
@@ -49,13 +54,25 @@ public class ConsoleGuiService {
 			lastIndex = j + messageLengths + 1;
 		}
 		fitToDisplay(messageHolder, lastIndex);
-		System.out.println("*&*                                                          *&*");
+		System.out.println(consoleSide);
 	}
 	
-	public void initializeConsoleChatGui(String enterMessage, List<String> messages, String exitMessage) {
+	public void initializeConsoleChatGui(String enterMessage, List<Message> messages, String exitMessage) {
 		System.out.println(consoleTop);
 		fitToDisplay(enterMessage, 0);
-		System.out.println("*&*                                                          *&*");
+		System.out.println(consoleSide);
+		for(int i = 0; i < messages.size(); i++)
+		{
+			printMessage(messages.get(i).getMessage());
+		}
+		fitToDisplay(exitMessage, 0);
+		System.out.println(consoleBottom);
+	}
+	
+	public void initializeConsoleChatGuiReturn(String enterMessage, List<String> messages, String exitMessage) {
+		System.out.println(consoleTop);
+		fitToDisplay(enterMessage, 0);
+		System.out.println(consoleSide);
 		for(int i = 0; i < messages.size(); i++)
 		{
 			printMessage(messages.get(i));
@@ -64,19 +81,24 @@ public class ConsoleGuiService {
 		System.out.println(consoleBottom);
 	}
 	
-	public void addMessage(String message) {
+	public void addMessage(String message, boolean local) {
+		// local is for if the message is printed locally or publicly.
 		// clearing previous ending style lines in console using ansi escape codes
-		System.out.print("\033[1A");
-		System.out.print("\033[2K");
-		System.out.print("\033[1A");
-		System.out.print("\033[2K");
-		System.out.print("\033[1A");
-		System.out.print("\033[2K");
+		if(local)
+		{
+			System.out.print("\033[1A");
+			System.out.print("\033[2K");	
+		}
+		for(int i = 0; i < verticalDesignLength; i++)
+		{
+			System.out.print("\033[1A");
+			System.out.print("\033[2K");
+		}
 		printMessage(message);
 		System.out.println(consoleBottom);
 	}
 	
-	public void displaySearch(String enterMessage, List<String> results) {
+	public void displaySearch(String enterMessage, List<Message> results) {
 		System.out.print("\033[2J");
 		initializeConsoleChatGui(enterMessage, results, enterMessage + ": press /exit to exit");
 	}
