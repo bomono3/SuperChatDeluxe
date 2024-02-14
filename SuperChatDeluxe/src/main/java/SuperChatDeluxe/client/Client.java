@@ -14,6 +14,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import SuperChatDeluxe.model.Message;
+
 
 public class Client {
 	private Socket socket;
@@ -89,6 +96,7 @@ public class Client {
 			if ("/search".equals(input.trim())) {
 				live = false; // Enter search mode
 				System.out.println("You're now in search mode. Type /exit to return to live chat.");
+				searchBetweenDates();
 
 			// Exit search mode and display missed messages
 			} else if ("/exit".equals(input.trim())) {
@@ -108,14 +116,18 @@ public class Client {
 	// This method sends a request to the server to get messages between two dates
 	public void searchBetweenDates() {
     Scanner scanner = new Scanner(System.in);
+	//should be when search between dates is selected
     System.out.println("Enter start date (YYYY-MM-DD):");
     String startDate = scanner.nextLine();
+	String startDateTime = startDate + "T00:00:01";
+	//should be when search is exited
     System.out.println("Enter end date (YYYY-MM-DD):");
     String endDate = scanner.nextLine();
+	String endDateTime = endDate + "T23:59:59";
 
     try {
         HttpClient client = HttpClient.newHttpClient();
-        String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDate, endDate);
+        String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()
@@ -123,10 +135,20 @@ public class Client {
 
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
-        //TODO - the server returns a JSON array of messages
+
+		ObjectMapper mapper = new ObjectMapper();
+
+		//registering JavaTimeModule to handle LocalDateTime
+		mapper.registerModule(new JavaTimeModule());
+		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+		List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
+
         System.out.println("Messages between " + startDate + " and " + endDate + ":");
-		//TODO - parse the JSON and format the output
-        System.out.println(response.body());
+
+		for (Message message : messages) {
+			System.out.println(" message: " + message.getMessage());
+		}
     } catch (Exception e) {
         e.printStackTrace();
     }

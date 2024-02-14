@@ -25,29 +25,31 @@ public class SecurityConfig {
 
 	@Autowired
 	UserDetailsService userDetailsService;
-	
+
 	@Autowired
 	JwtRequestFilter jwtRequestFilter;
-	
+
 	@Bean
 	protected UserDetailsService userDetailsService() {
 		return userDetailsService;
 	}
-	
-	
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf().disable()
         .authorizeHttpRequests()
         .requestMatchers(HttpMethod.POST,"/api/register").permitAll()
         .requestMatchers( HttpMethod.POST,"/authenticate").permitAll()
+        .requestMatchers(HttpMethod.POST, "/api/message").permitAll()
+        .requestMatchers(HttpMethod.GET, "/api/message/gone/**").permitAll()
         .anyRequest().authenticated()
         .and()
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-        
+
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
-        
-        
+
+
     	return http.build();
     }
 
@@ -55,21 +57,21 @@ public class SecurityConfig {
     protected PasswordEncoder encode() {
         return new BCryptPasswordEncoder();
     }
-    
+
     @Bean
     protected DaoAuthenticationProvider authenticationProvider() {
-        
+
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        
+
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(encode());
-        
+
         return authProvider;
     }
-    
+
     @Bean
     protected AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
-    
+
 }
