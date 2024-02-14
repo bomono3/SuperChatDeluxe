@@ -71,11 +71,11 @@ public class Message implements Serializable {
 		this.message = message;
 	}
 
-	public boolean isPrivate() {
+	public boolean getIsPrivate() {
 		return isPrivate;
 	}
 
-	public void setPrivate(boolean isPrivate) {
+	public void setIsPrivate(boolean isPrivate) {
 		this.isPrivate = isPrivate;
 	}
 
@@ -110,5 +110,7 @@ public class Message implements Serializable {
 		return "Message [messageId=" + messageId + ", message=" + message + ", isPrivate=" + isPrivate + ", timeSent="
 				+ timeSent + ", username=" + username + ", sentTo=" + sentTo + "]";
 	}
+	
+	
 	
 }

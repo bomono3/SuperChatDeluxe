@@ -21,28 +21,28 @@ public class MessageController {
 
 	@Autowired
 	MessageService service;
-	
+
 	@PostMapping("/message")
 	public ResponseEntity<?> sendMessage(@RequestBody Message newMessage){
 		Message newAddedMessage = service.sendMessage(newMessage);
-		
+
 		return ResponseEntity.status(200).body(newAddedMessage);
 	}
-	
+
 	@GetMapping("/message/{username}")
 	public List<Message> getMessageHistory(@PathVariable String username){
-		
+
 		return service.getMessageHistory(username);
 	}
-	
+
 	@GetMapping("/message/last/{limit}")
 	public List<Message> getLastMessages(@PathVariable int limit){
 		return service.getLastMessages(limit);
 	}
 
-	@GetMapping("/message/gone/{username}/{startDate}/{endDate}")
-	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDate, @PathVariable LocalDateTime endDate){
-		
-		return service.getMessageWhileGone(username, startDate, endDate);
+	@GetMapping("/message/gone/{username}/{startDateTime}/{endDateTime}")
+	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDateTime, @PathVariable LocalDateTime endDateTime){
+
+		return service.getMessageWhileGone(username, startDateTime, endDateTime);
 	}
 }
