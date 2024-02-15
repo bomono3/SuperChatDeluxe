@@ -66,18 +66,18 @@ public class Client {
 	private String jwtToken;
 
 	public void signUp(Scanner scanner) throws IOException, InterruptedException {
-		System.out.print("Enter username: ");
+		gui.addMessage("Enter username: ", true);
 		String username = scanner.nextLine();
-		System.out.print("Enter password: ");
+		gui.addMessage("Enter password: ", true);
 		String password = scanner.nextLine();
-		System.out.print("Confirm password: ");
+		gui.addMessage("Confirm password: ", true);
 		String confirmPassword = scanner.nextLine();
 
 		if (!password.equals(confirmPassword)) {
-			System.out.println("Passwords do not match");
+			gui.addMessage("Passwords do not match", true);
 			return;
 		} else {
-			System.out.println("Passwords match");
+			gui.addMessage("Passwords match", true);
 		}
 
 		User user = new User(username, password);
@@ -94,18 +94,18 @@ public class Client {
 		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (response.statusCode() == 200) {
 			this.username = username;
-			System.out.println("Signup successful: " + response.body());
+			gui.addMessage("Signup successful: " + response.body(), true);
 		} else {
-			System.out.println("Signup failed: " + response.body());
+			gui.addMessage("Signup failed: " + response.body(), true);
 		}
 	}
 
 
 	//method for login
 	public void login(Scanner scanner) throws IOException, InterruptedException {
-        System.out.print("Enter username: ");
+		gui.addMessage("Enter username: ", true);
         String username = scanner.nextLine();
-        System.out.print("Enter password: ");
+        gui.addMessage("Enter password: ", true);
         String password = scanner.nextLine();
 
         // Creating the payload using a Map
@@ -135,18 +135,16 @@ public class Client {
 
 			// Set the username field upon successful login
 			this.username = username;
-			System.out.println("Login Successful");
+			gui.addMessage("Login Successful", true);
 		} else {
-			System.out.println("Login failed: " + response.body());
+			gui.addMessage("Login failed: " + response.body(), true);
 		}
     }
 
 	public void userAuthenticate(Scanner scanner) throws IOException, InterruptedException {
 		while (true) {
-			System.out.println("Welcome to SuperChatDeluxe!");
-			System.out.println("1. Sign Up");
-			System.out.println("2. Login");
-			System.out.print("Choose an option (1 or 2): ");
+			gui.initializeConsoleChatGuiReturn("Welcome to SuperChatDeluxe!", 
+					new ArrayList<String>() {{add("1. Sign Up"); add("2. Login"); }}, "Choose an option (1 or 2): ");
 			String option = scanner.nextLine();
 
 			if ("1".equals(option)) {
@@ -156,7 +154,7 @@ public class Client {
 				login(scanner);
 				break;
 			} else {
-				System.out.println("Invalid option. Please enter 1 for Sign Up or 2 for Login.");
+				gui.addMessage("Invalid option. Please enter 1 for Sign Up or 2 for Login.", true);
 			}
 		}
 
@@ -164,7 +162,7 @@ public class Client {
 		if (this.username != null) {
 			sendUsername(this.username);
 		} else {
-			System.out.println("Error: Username not set.  Please try again.");
+			gui.addMessage("Error: Username not set.  Please try again.", true);
 		}
 	}
 
@@ -292,8 +290,8 @@ public class Client {
 			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>() {
 			});
 
-
-			gui.initializeConsoleChatGui("Last " + limit + " messages:", messages, "to search between dates type /search, then type /exit to return to live chat");
+			
+			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -307,15 +305,11 @@ public class Client {
 
 			Client client = new Client(socket, null);
 			client.userAuthenticate(scanner);
-			client.sendUsername(client.username);
 			client.listenForMessage();
 
 			// Fetch last 10 messages
 			int lastMessageLimit = 10;
 			client.fetchLastMessages(lastMessageLimit);
-
-
-			client.gui.initializeConsoleChatGuiReturn("welcome to gamerchat", new ArrayList(), "type in console and press enter to send a message");
 			client.handleUserInput(scanner);
 			scanner.close();
 
