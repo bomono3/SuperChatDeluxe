@@ -41,9 +41,6 @@ public class SecurityConfig {
         .authorizeHttpRequests()
         .requestMatchers(HttpMethod.POST,"/api/register").permitAll()
         .requestMatchers( HttpMethod.POST,"/authenticate").permitAll()
-        .requestMatchers(HttpMethod.POST, "/api/message").permitAll()
-        .requestMatchers(HttpMethod.GET, "/api/message/gone/**").permitAll()
-        .requestMatchers(HttpMethod.GET, "/api/message/last/*").permitAll()
         .anyRequest().authenticated()
         .and()
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);

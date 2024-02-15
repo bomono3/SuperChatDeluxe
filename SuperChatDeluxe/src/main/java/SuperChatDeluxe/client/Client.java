@@ -11,6 +11,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,8 +133,8 @@ public class Client {
 					});
 
 
-			this.jwtToken = responseMap.get("jwt");
-
+			jwtToken = responseMap.get("jwt");
+			
 			// Set the username field upon successful login
 			this.username = username;
 			gui.addMessage("Login Successful", true);
@@ -161,6 +163,7 @@ public class Client {
 		// Ensure username is not null before sending
 		if (this.username != null) {
 			sendUsername(this.username);
+			sendJwt(jwtToken);
 		} else {
 			gui.addMessage("Error: Username not set.  Please try again.", true);
 		}
@@ -182,6 +185,17 @@ public class Client {
 	public void sendUsername(String username) {
 		try {
 			bufferedWriter.write(username);
+			bufferedWriter.newLine();
+			bufferedWriter.flush();
+
+		} catch (IOException e) {
+			closeEverything(socket, bufferedReader, bufferedWriter);
+		}
+	}
+	
+	public void sendJwt(String jwt) {
+		try {
+			bufferedWriter.write(jwt);
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
 
@@ -251,6 +265,7 @@ public class Client {
 			String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
 			HttpRequest request = HttpRequest.newBuilder()
 					.uri(URI.create(url))
+		            .header("Authorization", "Bearer " + jwtToken)
 					.GET()
 					.build();
 
@@ -278,6 +293,7 @@ public class Client {
 			String url = String.format("http://localhost:8080/api/message/last/%d", limit);
 			HttpRequest request = HttpRequest.newBuilder()
 					.uri(URI.create(url))
+		            .header("Authorization", "Bearer " + jwtToken)
 					.GET()
 					.build();
 
@@ -289,6 +305,9 @@ public class Client {
 
 			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>() {
 			});
+			
+//			reverse list so that it shows as oldest -> latest
+			Collections.reverse(messages);
 
 			
 			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
