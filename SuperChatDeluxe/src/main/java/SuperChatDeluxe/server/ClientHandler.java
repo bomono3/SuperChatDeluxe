@@ -64,8 +64,8 @@ public class ClientHandler implements Runnable {
                         continue;
                     }
 
-
 					String messageWithoutUsername = clientMessage.split(": ", 2)[1];
+					
 					boolean potentialPrivateMessage = messageWithoutUsername.length() >= 8;
 
 					if(potentialPrivateMessage && messageWithoutUsername.substring(0,8).contains("-private")) {

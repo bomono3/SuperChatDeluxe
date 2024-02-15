@@ -59,26 +59,26 @@ public class ConsoleGuiService {
 
 	public void initializeConsoleChatGui(String enterMessage, List<Message> messages, String exitMessage) {
 		System.out.println(consoleTop);
-		fitToDisplay(enterMessage, 0);
+		printMessage(enterMessage);
 		System.out.println(consoleSide);
 		for (Message message : messages) {
 
-			String userMessage = message.getUsername().getUsername() + ": " + message.getMessage();
+			String userMessage = message.getMessage();
 			printMessage(userMessage);
 		}
-		fitToDisplay(exitMessage, 0);
+		printMessage(exitMessage);
 		System.out.println(consoleBottom);
 	}
 
 	public void initializeConsoleChatGuiReturn(String enterMessage, List<String> messages, String exitMessage) {
 		System.out.println(consoleTop);
-		fitToDisplay(enterMessage, 0);
+		printMessage(enterMessage);
 		System.out.println(consoleSide);
 		for(int i = 0; i < messages.size(); i++)
 		{
 			printMessage(messages.get(i));
 		}
-		fitToDisplay(exitMessage, 0);
+		printMessage(exitMessage);
 		System.out.println(consoleBottom);
 	}
 
@@ -102,6 +102,11 @@ public class ConsoleGuiService {
 	public void displaySearch(String enterMessage, List<Message> results) {
 		System.out.print("\033[2J");
 		initializeConsoleChatGui(enterMessage, results, enterMessage + ": press /exit to exit");
+	}
+	
+	public void initializeClear(String enterMessage, List<Message> results, String exitMessage) {
+		System.out.print("\033[2J");
+		initializeConsoleChatGui(enterMessage, results, exitMessage);
 	}
 	
 	public void serverRunningUpdateGui(String enterMessage, List<String> results, String exitMessage) {
