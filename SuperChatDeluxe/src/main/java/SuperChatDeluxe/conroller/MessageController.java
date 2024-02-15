@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.service.MessageService;
+import SuperChatDeluxe.util.EncryptionManager;
 
 @RequestMapping("/api")
 @RestController
@@ -24,6 +25,17 @@ public class MessageController {
 
 	@PostMapping("/message")
 	public ResponseEntity<?> sendMessage(@RequestBody Message newMessage){
+		
+//		EncryptionManager manager = new EncryptionManager();
+//		manager.initFromStrings();
+//		
+//		try {
+//			String result = manager.encrypt(newMessage.getMessage());
+//			newMessage.setMessage(result);
+//		}
+//		catch(Exception ignored) {}
+		
+		
 		Message newAddedMessage = service.sendMessage(newMessage);
 
 		return ResponseEntity.status(200).body(newAddedMessage);
