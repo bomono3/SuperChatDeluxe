@@ -139,7 +139,7 @@ public class ClientHandler implements Runnable {
     	
     	
 
-    	 System.out.println("jsonData: " + jsonData);
+//    	 System.out.println("jsonData: " + jsonData);
 	   	 HttpClient client = HttpClient.newHttpClient();
 	     
 	   	 String url = String.format("http://localhost:8080/api/message");
