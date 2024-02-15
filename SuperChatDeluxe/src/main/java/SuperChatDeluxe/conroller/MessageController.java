@@ -25,35 +25,24 @@ public class MessageController {
 
 	@PostMapping("/message")
 	public ResponseEntity<?> sendMessage(@RequestBody Message newMessage){
-		
-//		EncryptionManager manager = new EncryptionManager();
-//		manager.initFromStrings();
-//		
-//		try {
-//			String result = manager.encrypt(newMessage.getMessage());
-//			newMessage.setMessage(result);
-//		}
-//		catch(Exception ignored) {}
-		
-		
 		Message newAddedMessage = service.sendMessage(newMessage);
 
 		return ResponseEntity.status(200).body(newAddedMessage);
 	}
 
 	@GetMapping("/message/{username}")
-	public List<Message> getMessageHistory(@PathVariable String username){
+	public List<Message> getMessageHistory(@PathVariable String username) throws Exception{
 
 		return service.getMessageHistory(username);
 	}
 
 	@GetMapping("/message/last/{limit}")
-	public List<Message> getLastMessages(@PathVariable int limit){
+	public List<Message> getLastMessages(@PathVariable int limit) throws Exception{
 		return service.getLastMessages(limit);
 	}
 
 	@GetMapping("/message/gone/{username}/{startDateTime}/{endDateTime}")
-	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDateTime, @PathVariable LocalDateTime endDateTime){
+	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDateTime, @PathVariable LocalDateTime endDateTime) throws Exception{
 
 		return service.getMessageWhileGone(username, startDateTime, endDateTime);
 	}

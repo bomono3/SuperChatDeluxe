@@ -11,12 +11,16 @@ import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.repository.MessageRepository;
 import SuperChatDeluxe.repository.UserRepository;
+import SuperChatDeluxe.util.RSA;
 
 @Service
 public class MessageService {
 
 		@Autowired 
 		MessageRepository repo;
+		
+		@Autowired
+		RSA rsa;
 		
 		@Autowired
 		UserRepository userRepo;
@@ -37,16 +41,42 @@ public class MessageService {
 			return newMessage;
 		}
 		
-		public List<Message> getMessageHistory(String username){
+		public List<Message> getMessageHistory(String username) throws Exception{
 			
-			return repo.getMessagesByLatest(username);
+			List<Message> messages = repo.getMessagesByLatest(username);
+			
+			for(Message messageObj: messages) {
+				String decryptedMessage = rsa.decrypt(messageObj.getMessage());
+				messageObj.setMessage(decryptedMessage);
+			}
+			
+			return messages;
+			
 		}
 		
-		public List<Message> getLastMessages(int limit){
-			return repo.getLastMessages(limit);
+		public List<Message> getLastMessages(int limit) throws Exception{
+			
+			
+			List<Message> messages = repo.getLastMessages(limit);
+			
+			for(Message messageObj: messages) {
+				String decryptedMessage = rsa.decrypt(messageObj.getMessage());
+				messageObj.setMessage(decryptedMessage);
+			}
+			
+			return messages;
 		}
 		
-		public List<Message> getMessageWhileGone(String username, LocalDateTime begin, LocalDateTime end){
-			return repo.getMessageWhileGone(username, begin, end);
+		public List<Message> getMessageWhileGone(String username, LocalDateTime begin, LocalDateTime end) throws Exception{
+			
+			List<Message> messages = repo.getMessageWhileGone(username, begin, end);
+			
+			for(Message messageObj: messages) {
+				String decryptedMessage = rsa.decrypt(messageObj.getMessage());
+				messageObj.setMessage(decryptedMessage);
+			}
+			
+			return messages;
+			
 		}
 }

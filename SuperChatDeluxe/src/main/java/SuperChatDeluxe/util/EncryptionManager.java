@@ -2,7 +2,6 @@ package SuperChatDeluxe.util;
 
 import java.security.KeyFactory;
 import java.security.PublicKey;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
