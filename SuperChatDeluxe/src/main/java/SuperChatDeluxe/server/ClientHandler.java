@@ -35,6 +35,7 @@ public class ClientHandler implements Runnable {
     private BufferedWriter out;
     private BufferedReader in;
     private String username;
+    private String jwt;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -43,6 +44,7 @@ public class ClientHandler implements Runnable {
             this.in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             this.username = in.readLine();
             Server.broadcastMessage("SERVER: " + username + " has entered the chat!", this);
+            this.jwt = in.readLine();
         } catch (IOException e) {
             closeEverything(socket, out, in);
         }
@@ -149,6 +151,7 @@ public class ClientHandler implements Runnable {
 	     HttpRequest request = HttpRequest.newBuilder()
 	             .uri(URI.create(url))
 	             .header("Content-Type", "application/json")
+	             .header("Authorization", "Bearer " + this.jwt)
 	             .POST(BodyPublishers.ofString(jsonData))
 	             .build();
 	     try {
