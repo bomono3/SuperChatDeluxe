@@ -32,7 +32,7 @@ public class Client {
 	// Indicates if the client is in live mode or search mode
 	private boolean live = true;
 	private List<String> missedMessages = new ArrayList<>();
-	
+
 	private ConsoleGuiService gui;
 
 	public Client(Socket socket, String username) {
@@ -66,18 +66,18 @@ public class Client {
 			bufferedWriter.write(message);
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
-			
+
 		} catch (IOException e) {
 			closeEverything(socket, bufferedReader, bufferedWriter);
 		}
 	}
-	
+
 	public void sendUsername(String username) {
 		try {
 			bufferedWriter.write(username);
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
-			
+
 		} catch (IOException e) {
 			closeEverything(socket, bufferedReader, bufferedWriter);
 		}
@@ -128,39 +128,65 @@ public class Client {
 
 	// This method sends a request to the server to get messages between two dates
 	public void searchBetweenDates(Scanner scanner) {
-	//should be when search between dates is selected
-    gui.addMessage("Enter start date (YYYY-MM-DD):", true);
-    String startDate = scanner.nextLine();
-	String startDateTime = startDate + "T00:00:01";
-	//should be when search is exited
-    gui.addMessage("Enter end date (YYYY-MM-DD):", true);
-    String endDate = scanner.nextLine();
-	String endDateTime = endDate + "T23:59:59";
+		//should be when search between dates is selected
+		gui.addMessage("Enter start date (YYYY-MM-DD):", true);
+		String startDate = scanner.nextLine();
+		String startDateTime = startDate + "T00:00:01";
+		//should be when search is exited
+		gui.addMessage("Enter end date (YYYY-MM-DD):", true);
+		String endDate = scanner.nextLine();
+		String endDateTime = endDate + "T23:59:59";
 
-    try {
-        HttpClient client = HttpClient.newHttpClient();
-        String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .GET()
-                .build();
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+			String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
+			HttpRequest request = HttpRequest.newBuilder()
+					.uri(URI.create(url))
+					.GET()
+					.build();
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
 
-		ObjectMapper mapper = new ObjectMapper();
+			ObjectMapper mapper = new ObjectMapper();
 
-		//registering JavaTimeModule to handle LocalDateTime
-		mapper.registerModule(new JavaTimeModule());
-		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+			//registering JavaTimeModule to handle LocalDateTime
+			mapper.registerModule(new JavaTimeModule());
+			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-		List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
-        
-        gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
-}
+			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
+
+			gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	//method to send a message to the server to get the message history of a user for last N messages
+	public void fetchLastMessages(int limit) {
+		try {
+			HttpClient client = HttpClient.newHttpClient();
+			String url = String.format("http://localhost:8080/api/message/last/%d", limit);
+			HttpRequest request = HttpRequest.newBuilder()
+					.uri(URI.create(url))
+					.GET()
+					.build();
+
+			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.registerModule(new JavaTimeModule());
+			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>() {
+			});
+
+
+			gui.initializeConsoleChatGui("Last " + limit + " messages:", messages, "to search between dates type /search, then type /exit to return to live chat");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 	public static void main(String[] args) {
 		// Connection setup and starting the client
@@ -172,6 +198,12 @@ public class Client {
 			Client client = new Client(socket, username);
 			client.sendUsername(username);
 			client.listenForMessage();
+
+			// Fetch last 10 messages
+			int lastMessageLimit = 10;
+			client.fetchLastMessages(lastMessageLimit);
+
+
 			client.gui.initializeConsoleChatGuiReturn("welcome to gamerchat", new ArrayList(), "type in console and press enter to send a message");
 			client.handleUserInput(scanner);
 			scanner.close();
