@@ -103,4 +103,9 @@ public class ConsoleGuiService {
 		System.out.print("\033[2J");
 		initializeConsoleChatGui(enterMessage, results, enterMessage + ": press /exit to exit");
 	}
+	
+	public void serverRunningUpdateGui(String enterMessage, List<String> results, String exitMessage) {
+		System.out.print("\033[2J");
+		initializeConsoleChatGuiReturn(enterMessage, results, exitMessage);
+	}
 }

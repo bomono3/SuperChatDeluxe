@@ -26,6 +26,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
 
+import SuperChatDeluxe.service.ConsoleGuiService;
+
 
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
@@ -149,6 +151,7 @@ public class ClientHandler implements Runnable {
 
     private void closeEverything(Socket socket, BufferedWriter out, BufferedReader in) {
     	Server.broadcastMessage("SERVER: " + username + " has left the chat!", this);
+    	Server.updateGui();
         try {
             if (in != null)
                 in.close();

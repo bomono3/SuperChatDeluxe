@@ -222,13 +222,15 @@ public class Client {
 				searchBetweenDates(scanner);
 
 			// Exit search mode and display missed messages
-			} else if ("/exit".equals(input.trim())) {
+			} else if ("/exit".equals(input.trim()) && (live == false)) {
 				live = true;
 				gui.initializeConsoleChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
 				missedMessages.clear();
 
 			// Send message to server if in live mode
-			} else if (live) {
+			} else if ("/exit".equals(input.trim()) && (live == true)) {
+				return;
+			}	else if (live) {
 				sendMessage(username + ": " + input);
 			}
 		}
@@ -316,6 +318,7 @@ public class Client {
 			client.gui.initializeConsoleChatGuiReturn("welcome to gamerchat", new ArrayList(), "type in console and press enter to send a message");
 			client.handleUserInput(scanner);
 			scanner.close();
+
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
