@@ -6,6 +6,25 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublisher;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.http.RequestEntity.BodyBuilder;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import SuperChatDeluxe.model.Message;
+import SuperChatDeluxe.model.User;
 
 import SuperChatDeluxe.service.ConsoleGuiService;
 
@@ -82,11 +101,53 @@ public class ClientHandler implements Runnable {
 			out.write(message);
 			out.newLine();
 			out.flush();
+			
 		} catch (IOException e) {
 			closeEverything(clientSocket, out, in);
 		}
 
     }
+    
+    public void postMessageToDatabase(String message, boolean isPrivate, String sentTo, LocalDateTime timeSent) {
+    	
+    	
+    	String jsonData;
+    	if(sentTo.equals("null")) {
+    		jsonData = String.format("{\"username\": \"%s\"," +
+                    "\"message\": \"%s\"," +
+                    "\"isPrivate\": %s," +
+                    "\"timeSent\": \"%s\"}",
+                    this.username, message, isPrivate, timeSent);
+    	}
+    	else {
+    		jsonData = String.format("{\"username\": \"%s\"," +
+    	                                "\"message\": \"%s\"," +
+    	                                "\"isPrivate\": %s," +
+    	                                "\"sentTo\": \"%s\"," +
+    	                                "\"timeSent\": \"%s\"}",
+    	                                this.username, message, isPrivate, sentTo, timeSent);
+    	}
+    	
+    	
+
+    	 System.out.println("jsonData: " + jsonData);
+	   	 HttpClient client = HttpClient.newHttpClient();
+	     
+	   	 String url = String.format("http://localhost:8080/api/message");
+	     
+	     HttpRequest request = HttpRequest.newBuilder()
+	             .uri(URI.create(url))
+	             .header("Content-Type", "application/json")
+	             .POST(BodyPublishers.ofString(jsonData))
+	             .build();
+	     try {
+	    	 client.send(request, BodyHandlers.ofString());
+	
+	     } catch (Exception e) {
+	    	 e.printStackTrace();
+	     }
+    }
+    
 
     private void closeEverything(Socket socket, BufferedWriter out, BufferedReader in) {
     	Server.broadcastMessage("SERVER: " + username + " has left the chat!", this);

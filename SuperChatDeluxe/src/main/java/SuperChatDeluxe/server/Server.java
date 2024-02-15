@@ -5,6 +5,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -64,6 +65,11 @@ public class Server {
                     client.sendMessage(message);
                 }
             }
+        	
+        	if(!message.contains("SERVER: " + sender.getUsername())) {
+        		sender.postMessageToDatabase(message, false, "null", LocalDateTime.now());
+        	}
+        	
         }
     }
     
@@ -72,11 +78,14 @@ public class Server {
     		for (ClientHandler client : clients) {
                 if (client != sender && client.getUsername().equals(username)) {
                     client.sendMessage(message);
+                    sender.postMessageToDatabase(message, true, client.getUsername(), LocalDateTime.now());
                     return;
                 }
             }
     		
     		sender.sendMessage("User with username " + username + " does not exist.");
+    		
         }
     }
+    
 }
