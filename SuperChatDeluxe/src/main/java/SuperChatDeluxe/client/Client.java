@@ -11,6 +11,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -303,6 +305,9 @@ public class Client {
 
 			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>() {
 			});
+			
+//			reverse list so that it shows as oldest -> latest
+			Collections.reverse(messages);
 
 			
 			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
