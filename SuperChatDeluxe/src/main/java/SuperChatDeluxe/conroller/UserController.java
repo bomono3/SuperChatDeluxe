@@ -1,6 +1,8 @@
 package SuperChatDeluxe.conroller;
 
 
+import SuperChatDeluxe.exception.AlreadyInUseException;
+import SuperChatDeluxe.exception.ResourceNotFoundException;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,28 +18,22 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class UserController {
 
-    private final UserService userService;
-
     @Autowired
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
+    UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
+    public ResponseEntity<User> registerUser(@RequestBody User user) throws AlreadyInUseException {
         User registeredUser = userService.registerNewUser(user);
         return ResponseEntity.ok(registeredUser);
     }
 
     @GetMapping("/user/{username}")
-    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<User> getUserByUsername(@PathVariable String username) throws ResourceNotFoundException {
         User user = userService.findUserByUsername(username);
         if (user != null) {
             return ResponseEntity.ok(user);
         } else {
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Username with name: " + username);
         }
     }
-
-    // Add more endpoints as needed
 }
