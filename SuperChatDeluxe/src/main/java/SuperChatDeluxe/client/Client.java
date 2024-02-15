@@ -131,7 +131,7 @@ public class Client {
 					});
 
 
-			jwtToken = responseMap.get("jwt");
+			this.jwtToken = responseMap.get("jwt");
 
 			// Set the username field upon successful login
 			this.username = username;
