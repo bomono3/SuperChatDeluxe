@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.service.MessageService;
+import SuperChatDeluxe.util.EncryptionManager;
 
 @RequestMapping("/api")
 @RestController
@@ -30,18 +31,18 @@ public class MessageController {
 	}
 
 	@GetMapping("/message/{username}")
-	public List<Message> getMessageHistory(@PathVariable String username){
+	public List<Message> getMessageHistory(@PathVariable String username) throws Exception{
 
 		return service.getMessageHistory(username);
 	}
 
 	@GetMapping("/message/last/{limit}")
-	public List<Message> getLastMessages(@PathVariable int limit){
+	public List<Message> getLastMessages(@PathVariable int limit) throws Exception{
 		return service.getLastMessages(limit);
 	}
 
 	@GetMapping("/message/gone/{username}/{startDateTime}/{endDateTime}")
-	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDateTime, @PathVariable LocalDateTime endDateTime){
+	public List<Message> getMessageWhileGone(@PathVariable String username, @PathVariable LocalDateTime startDateTime, @PathVariable LocalDateTime endDateTime) throws Exception{
 
 		return service.getMessageWhileGone(username, startDateTime, endDateTime);
 	}

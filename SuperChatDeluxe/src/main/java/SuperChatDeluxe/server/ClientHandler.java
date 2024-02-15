@@ -25,6 +25,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
+import SuperChatDeluxe.util.EncryptionManager;
 
 import SuperChatDeluxe.service.ConsoleGuiService;
 
@@ -109,15 +110,25 @@ public class ClientHandler implements Runnable {
     }
     
     public void postMessageToDatabase(String message, boolean isPrivate, String sentTo, LocalDateTime timeSent) {
-    	
-    	
+    	String encryptedMessage = message;
     	String jsonData;
+    	
+    	EncryptionManager manager = new EncryptionManager();
+		manager.initFromStrings();
+		
+		try {
+			encryptedMessage = manager.encrypt(message);
+			
+		}
+		catch(Exception ignored) {}
+    	
+    	
     	if(sentTo.equals("null")) {
     		jsonData = String.format("{\"username\": \"%s\"," +
                     "\"message\": \"%s\"," +
                     "\"isPrivate\": %s," +
                     "\"timeSent\": \"%s\"}",
-                    this.username, message, isPrivate, timeSent);
+                    this.username, encryptedMessage, isPrivate, timeSent);
     	}
     	else {
     		jsonData = String.format("{\"username\": \"%s\"," +
@@ -125,12 +136,12 @@ public class ClientHandler implements Runnable {
     	                                "\"isPrivate\": %s," +
     	                                "\"sentTo\": \"%s\"," +
     	                                "\"timeSent\": \"%s\"}",
-    	                                this.username, message, isPrivate, sentTo, timeSent);
+    	                                this.username, encryptedMessage, isPrivate, sentTo, timeSent);
     	}
     	
     	
 
-    	 System.out.println("jsonData: " + jsonData);
+//    	 System.out.println("jsonData: " + jsonData);
 	   	 HttpClient client = HttpClient.newHttpClient();
 	     
 	   	 String url = String.format("http://localhost:8080/api/message");
