@@ -11,7 +11,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -20,6 +22,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import SuperChatDeluxe.model.Message;
+import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.ConsoleGuiService;
 
 
@@ -56,6 +59,112 @@ public class Client {
 		}
 		catch(IOException e) {
 			e.printStackTrace();
+		}
+	}
+
+	//method for Sign up
+	private String jwtToken;
+
+	public void signUp(Scanner scanner) throws IOException, InterruptedException {
+		System.out.print("Enter username: ");
+		String username = scanner.nextLine();
+		System.out.print("Enter password: ");
+		String password = scanner.nextLine();
+		System.out.print("Confirm password: ");
+		String confirmPassword = scanner.nextLine();
+
+		if (!password.equals(confirmPassword)) {
+			System.out.println("Passwords do not match");
+			return;
+		} else {
+			System.out.println("Passwords match");
+		}
+
+		User user = new User(username, password);
+		ObjectMapper mapper = new ObjectMapper();
+		String json = mapper.writeValueAsString(user);
+
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create("http://localhost:8080/api/register"))
+				.header("Content-Type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString(json))
+				.build();
+
+		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		if (response.statusCode() == 200) {
+			this.username = username;
+			System.out.println("Signup successful: " + response.body());
+		} else {
+			System.out.println("Signup failed: " + response.body());
+		}
+	}
+
+
+	//method for login
+	public void login(Scanner scanner) throws IOException, InterruptedException {
+        System.out.print("Enter username: ");
+        String username = scanner.nextLine();
+        System.out.print("Enter password: ");
+        String password = scanner.nextLine();
+
+        // Creating the payload using a Map
+        Map<String, String> credentials = new HashMap<>();
+        credentials.put("username", username);
+        credentials.put("password", password);
+
+        ObjectMapper mapper = new ObjectMapper();
+        String json = mapper.writeValueAsString(credentials);
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/authenticate"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		if (response.statusCode() == 200 || response.statusCode() == 201) {
+
+			Map<String, String> responseMap = mapper.readValue(response.body(),
+					new TypeReference<Map<String, String>>() {
+					});
+
+
+			jwtToken = responseMap.get("jwt");
+
+			// Set the username field upon successful login
+			this.username = username;
+			System.out.println("Login Successful");
+		} else {
+			System.out.println("Login failed: " + response.body());
+		}
+    }
+
+	public void userAuthenticate(Scanner scanner) throws IOException, InterruptedException {
+		while (true) {
+			System.out.println("Welcome to SuperChatDeluxe!");
+			System.out.println("1. Sign Up");
+			System.out.println("2. Login");
+			System.out.print("Choose an option (1 or 2): ");
+			String option = scanner.nextLine();
+
+			if ("1".equals(option)) {
+				signUp(scanner);
+				break;
+			} else if ("2".equals(option)) {
+				login(scanner);
+				break;
+			} else {
+				System.out.println("Invalid option. Please enter 1 for Sign Up or 2 for Login.");
+			}
+		}
+
+		// Ensure username is not null before sending
+		if (this.username != null) {
+			sendUsername(this.username);
+		} else {
+			System.out.println("Error: Username not set.  Please try again.");
 		}
 	}
 
@@ -193,10 +302,10 @@ public class Client {
 		try {
 			Socket socket = new Socket("localhost", 5050);
 			Scanner scanner = new Scanner(System.in);
-			System.out.print("Enter your username: ");
-			String username = scanner.nextLine();
-			Client client = new Client(socket, username);
-			client.sendUsername(username);
+
+			Client client = new Client(socket, null);
+			client.userAuthenticate(scanner);
+			client.sendUsername(client.username);
 			client.listenForMessage();
 
 			// Fetch last 10 messages
@@ -207,7 +316,7 @@ public class Client {
 			client.gui.initializeConsoleChatGuiReturn("welcome to gamerchat", new ArrayList(), "type in console and press enter to send a message");
 			client.handleUserInput(scanner);
 			scanner.close();
-		} catch (IOException e) {
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
