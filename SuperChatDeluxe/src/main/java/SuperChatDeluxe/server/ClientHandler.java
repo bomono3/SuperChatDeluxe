@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 
+import SuperChatDeluxe.service.ConsoleGuiService;
+
 
 public class ClientHandler implements Runnable {
     private Socket clientSocket;
@@ -88,6 +90,7 @@ public class ClientHandler implements Runnable {
 
     private void closeEverything(Socket socket, BufferedWriter out, BufferedReader in) {
     	Server.broadcastMessage("SERVER: " + username + " has left the chat!", this);
+    	Server.updateGui();
         try {
             if (in != null)
                 in.close();
