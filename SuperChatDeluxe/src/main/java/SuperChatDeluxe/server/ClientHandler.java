@@ -44,49 +44,44 @@ public class ClientHandler implements Runnable {
     public void run() {
         String clientMessage;
 
-            while (clientSocket.isConnected()) {
+            try {
+				while ((clientMessage = in.readLine()) != null) {
 
-            	try {
-					clientMessage = in.readLine();
-					if(clientMessage == null) throw new IOException();
+						// Check for control commands and handle accordingly
+				        if ("/exit".equals(clientMessage) || "/search".equals(clientMessage)) {
+				            if("/exit".equals(clientMessage))  throw new IOException();
+				            continue;
+				        }
+				        
 
-                    // Check for control commands and handle accordingly
-                    if ("/exit".equals(clientMessage) || "/search".equals(clientMessage)) {
-                        if("/exit".equals(clientMessage))  throw new IOException();
-                        continue;
-                    }
+						String messageWithoutUsername = clientMessage.split(": ", 2)[1];
+						
+						boolean potentialPrivateMessage = messageWithoutUsername.length() >= 8;
 
-					String messageWithoutUsername = clientMessage.split(": ", 2)[1];
-					
-					boolean potentialPrivateMessage = messageWithoutUsername.length() >= 8;
+						if(potentialPrivateMessage && messageWithoutUsername.substring(0,8).contains("-private")) {
+						String[] messageComponents = messageWithoutUsername.split(" ");
 
-					if(potentialPrivateMessage && messageWithoutUsername.substring(0,8).contains("-private")) {
-            		String[] messageComponents = messageWithoutUsername.split(" ");
-
-            			if(messageComponents.length < 3 ) {
-            			sendMessage("Private command incomplete. Must contain (-private, username, message)");
-            			}
-            			else {
-            			String[] newMessageComponent = messageWithoutUsername.split(" ", 3);
-            			String newMessage = username + "(private): " + newMessageComponent[2];
-            			Server.privateMessage(newMessage, messageComponents[1], this);
-            			}
-					}
-					else {
-            		Server.broadcastMessage(clientMessage, this);
-					}
-				} catch (IOException e) {
-		            synchronized (Server.clients) {
-	                Server.clients.remove(this);
-	            }
-					closeEverything(clientSocket, out, in);
-					break;
+							if(messageComponents.length < 3 ) {
+							sendMessage("Private command incomplete. Must contain (-private, username, message)");
+							}
+							else {
+							String[] newMessageComponent = messageWithoutUsername.split(" ", 3);
+							String newMessage = username + "(private): " + newMessageComponent[2];
+							Server.privateMessage(newMessage, messageComponents[1], this);
+							}
+						}
+						else {
+						Server.broadcastMessage(clientMessage, this);
+						}
+				
 				}
-
-
-
-
             }
+            catch (IOException e) {
+            	synchronized (Server.clients) {
+			        Server.clients.remove(this);
+			    }
+            	closeEverything(clientSocket, out, in);
+			}
     }
 
     public void sendMessage(String message) {
