@@ -208,20 +208,21 @@ public class Client {
 	public void listenForMessage() {
 		new Thread(() -> {
 			String messageFromGroupChat;
-			while (socket.isConnected()) {
-				try {
-					messageFromGroupChat = bufferedReader.readLine();
-					if (!live) {
-						// In search mode, store messages instead of immediately displaying them
-						missedMessages.add(messageFromGroupChat);
-					} else {
-						if(messageFromGroupChat == null) throw new IOException();
-						gui.addMessage(messageFromGroupChat, false);
-					}
-				} catch (IOException e) {
-					closeEverything(socket, bufferedReader, bufferedWriter);
-					break;
+			try {
+				while ((messageFromGroupChat = bufferedReader.readLine()) != null) {
+					
+						if (!live) {
+							// In search mode, store messages instead of immediately displaying them
+							missedMessages.add(messageFromGroupChat);
+						} else {
+							gui.addMessage(messageFromGroupChat, false);
+						}
+					
 				}
+				
+				closeEverything(socket, bufferedReader, bufferedWriter);
+			} catch (IOException e) {
+				closeEverything(socket, bufferedReader, bufferedWriter);
 			}
 		}).start();
 	}
