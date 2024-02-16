@@ -9,25 +9,15 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
+
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.LocalDateTime;
-import java.util.List;
 
-import org.springframework.http.RequestEntity.BodyBuilder;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
-import SuperChatDeluxe.model.Message;
-import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.util.EncryptionManager;
 
-import SuperChatDeluxe.service.ConsoleGuiService;
+
 
 
 public class ClientHandler implements Runnable {
@@ -141,9 +131,7 @@ public class ClientHandler implements Runnable {
     	                                this.username, encryptedMessage, isPrivate, sentTo, timeSent);
     	}
     	
-    	
 
-//    	 System.out.println("jsonData: " + jsonData);
 	   	 HttpClient client = HttpClient.newHttpClient();
 	     
 	   	 String url = String.format("http://localhost:8080/api/message");

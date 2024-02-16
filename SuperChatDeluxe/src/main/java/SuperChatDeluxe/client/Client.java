@@ -151,6 +151,7 @@ public class Client {
 
 			if ("1".equals(option)) {
 				signUp(scanner);
+				login(scanner);
 				break;
 			} else if ("2".equals(option)) {
 				login(scanner);
