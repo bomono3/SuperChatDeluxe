@@ -215,6 +215,7 @@ public class Client {
 						// In search mode, store messages instead of immediately displaying them
 						missedMessages.add(messageFromGroupChat);
 					} else {
+						if(messageFromGroupChat == null) throw new IOException();
 						gui.addMessage(messageFromGroupChat, false);
 					}
 				} catch (IOException e) {
@@ -242,6 +243,7 @@ public class Client {
 
 			// Send message to server if in live mode
 			} else if ("/exit".equals(input.trim()) && (live == true)) {
+				sendMessage("/exit");
 				return;
 			}	else if (live) {
 				sendMessage(username + ": " + input);
@@ -251,7 +253,7 @@ public class Client {
 	}
 
 	// This method sends a request to the server to get messages between two dates
-	public void searchBetweenDates(Scanner scanner) {
+	public void searchBetweenDates(Scanner scanner){
 		//should be when search between dates is selected
 		gui.addMessage("Enter start date (YYYY-MM-DD):", true);
 		String startDate = scanner.nextLine();
@@ -332,6 +334,8 @@ public class Client {
 			client.fetchLastMessages(lastMessageLimit);
 			client.handleUserInput(scanner);
 			scanner.close();
+			client.gui.addMessage("Exited the Chatroom and Application. Goodbye!", false);
+			
 
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();

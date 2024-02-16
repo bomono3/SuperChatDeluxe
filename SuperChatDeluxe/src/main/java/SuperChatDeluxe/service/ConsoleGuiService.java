@@ -57,7 +57,7 @@ public class ConsoleGuiService {
 		System.out.println(consoleSide);
 	}
 
-	public void initializeConsoleChatGui(String enterMessage, List<Message> messages, String exitMessage) {
+	public void initializeConsoleChatGui(String enterMessage, List<Message> messages, String exitMessage)  {
 		System.out.println(consoleTop);
 		printMessage(enterMessage);
 		System.out.println(consoleSide);
@@ -82,7 +82,7 @@ public class ConsoleGuiService {
 		System.out.println(consoleBottom);
 	}
 
-	public void addMessage(String message, boolean local) {
+	public void addMessage(String message, boolean local)  {
 		// local is for if the message is printed locally or publicly.
 		// clearing previous ending style lines in console using ansi escape codes
 		if(local)
@@ -99,7 +99,7 @@ public class ConsoleGuiService {
 		System.out.println(consoleBottom);
 	}
 
-	public void displaySearch(String enterMessage, List<Message> results) {
+	public void displaySearch(String enterMessage, List<Message> results)  {
 		System.out.print("\033[2J");
 		initializeConsoleChatGui(enterMessage, results, enterMessage + ": press /exit to exit");
 	}
@@ -109,7 +109,7 @@ public class ConsoleGuiService {
 		initializeConsoleChatGui(enterMessage, results, exitMessage);
 	}
 	
-	public void serverRunningUpdateGui(String enterMessage, List<String> results, String exitMessage) {
+	public void serverRunningUpdateGui(String enterMessage, List<String> results, String exitMessage){
 		System.out.print("\033[2J");
 		initializeConsoleChatGuiReturn(enterMessage, results, exitMessage);
 	}

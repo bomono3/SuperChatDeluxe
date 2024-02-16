@@ -52,7 +52,7 @@ public class ClientHandler implements Runnable {
 
                     // Check for control commands and handle accordingly
                     if ("/exit".equals(clientMessage) || "/search".equals(clientMessage)) {
-                        // Do not broadcast these commands
+                        if("/exit".equals(clientMessage))  throw new IOException();
                         continue;
                     }
 

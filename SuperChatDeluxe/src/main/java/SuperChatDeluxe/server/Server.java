@@ -30,9 +30,7 @@ public class Server {
 			IP = null;
 		}
     	guiList.set(0, "IP Address: " + IP);
-        System.out.println("Server starting...");
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Server listening on port " + PORT);
             
             while (true) {
             	guiList.set(2, "NumberOfConnectedClients: " + clients.size());
@@ -52,7 +50,7 @@ public class Server {
         }
     }
     
-    public static void updateGui() {
+    public static void updateGui()  {
     	guiList.set(2, "NumberOfConnectedClients: " + clients.size());
     	gui.serverRunningUpdateGui("SERVER RUNNING", guiList, "Ctrl + C to shutdown server");
     }
