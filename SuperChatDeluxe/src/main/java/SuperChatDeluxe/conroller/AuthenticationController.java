@@ -38,7 +38,7 @@ public class AuthenticationController {
 
 		} 
 		catch (Exception e) {
-			throw new Error("Invalid Credentials");
+			return ResponseEntity.status(401).body("Invalid Credentials");
 		}
 
 

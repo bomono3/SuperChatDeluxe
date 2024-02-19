@@ -104,7 +104,7 @@ public class Client {
 
 
 	//method for login
-	public void login(Scanner scanner) throws IOException, InterruptedException {
+	public boolean login(Scanner scanner) throws IOException, InterruptedException {
 		gui.addMessage("Enter username: ", true);
         String username = scanner.nextLine();
         gui.addMessage("Enter password: ", true);
@@ -138,8 +138,10 @@ public class Client {
 			// Set the username field upon successful login
 			this.username = username;
 			gui.addMessage("Login Successful", true);
+			return true;
 		} else {
 			gui.addMessage("Login failed: " + response.body(), true);
+			return false;
 		}
     }
 
@@ -154,8 +156,8 @@ public class Client {
 				login(scanner);
 				break;
 			} else if ("2".equals(option)) {
-				login(scanner);
-				break;
+				boolean success = login(scanner);
+				if(success) break;
 			} else {
 				gui.addMessage("Invalid option. Please enter 1 for Sign Up or 2 for Login.", true);
 			}
