@@ -97,17 +97,8 @@ public class ClientHandler implements Runnable {
     }
     
     public void postMessageToDatabase(String message, boolean isPrivate, String sentTo, LocalDateTime timeSent) {
-    	String encryptedMessage = message;
     	String jsonData;
     	
-    	EncryptionManager manager = new EncryptionManager();
-		manager.initFromStrings();
-		
-		try {
-			encryptedMessage = manager.encrypt(message);
-			
-		}
-		catch(Exception ignored) {}
     	
     	
     	if(sentTo.equals("null")) {
@@ -115,7 +106,7 @@ public class ClientHandler implements Runnable {
                     "\"message\": \"%s\"," +
                     "\"isPrivate\": %s," +
                     "\"timeSent\": \"%s\"}",
-                    this.username, encryptedMessage, isPrivate, timeSent);
+                    this.username, message, isPrivate, timeSent);
     	}
     	else {
     		jsonData = String.format("{\"username\": \"%s\"," +
@@ -123,7 +114,7 @@ public class ClientHandler implements Runnable {
     	                                "\"isPrivate\": %s," +
     	                                "\"sentTo\": \"%s\"," +
     	                                "\"timeSent\": \"%s\"}",
-    	                                this.username, encryptedMessage, isPrivate, sentTo, timeSent);
+    	                                this.username, message, isPrivate, sentTo, timeSent);
     	}
     	
 

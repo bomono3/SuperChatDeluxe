@@ -42,39 +42,20 @@ public class MessageService {
 		}
 		
 		public List<Message> getMessageHistory(String username) throws Exception{
-			
 			List<Message> messages = repo.getMessagesByLatest(username);
-			
-			for(Message messageObj: messages) {
-				String decryptedMessage = rsa.decrypt(messageObj.getMessage());
-				messageObj.setMessage(decryptedMessage);
-			}
 			
 			return messages;
 			
 		}
 		
 		public List<Message> getLastMessages(int limit) throws Exception{
-			
-			
 			List<Message> messages = repo.getLastMessages(limit);
-			
-			for(Message messageObj: messages) {
-				String decryptedMessage = rsa.decrypt(messageObj.getMessage());
-				messageObj.setMessage(decryptedMessage);
-			}
 			
 			return messages;
 		}
 		
 		public List<Message> getMessageWhileGone(String username, LocalDateTime begin, LocalDateTime end) throws Exception{
-			
 			List<Message> messages = repo.getMessageWhileGone(username, begin, end);
-			
-			for(Message messageObj: messages) {
-				String decryptedMessage = rsa.decrypt(messageObj.getMessage());
-				messageObj.setMessage(decryptedMessage);
-			}
 			
 			return messages;
 			
