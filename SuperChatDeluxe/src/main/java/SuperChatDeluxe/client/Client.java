@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -21,6 +22,7 @@ import java.util.Scanner;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import SuperChatDeluxe.model.Message;
@@ -235,7 +237,7 @@ public class Client {
 			// Toggle live/search mode based on user commands
 			if ("/search".equals(input.trim())) {
 				live = false; // Enter search mode
-				System.out.println("You're now in search mode. Type /exit to return to live chat.");
+				System.out.println("You're now in search mode.");
 				searchBetweenDates(scanner);
 
 			// Exit search mode and display missed messages
@@ -256,7 +258,8 @@ public class Client {
 	}
 
 	// This method sends a request to the server to get messages between two dates
-	public void searchBetweenDates(Scanner scanner){
+	public void searchBetweenDates(Scanner scanner) {
+		while(true) {
 		//should be when search between dates is selected
 		gui.addMessage("Enter start date (YYYY-MM-DD):", true);
 		String startDate = scanner.nextLine();
@@ -287,9 +290,16 @@ public class Client {
 			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
 
 			gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
-		} catch (Exception e) {
+			break;
+		} 
+		catch(IllegalArgumentException | MismatchedInputException e) {
+			gui.addMessage("Invalid Format in Input. Must be YYYY-MM-DD", true);
+		}
+		catch (Exception e) {
 			e.printStackTrace();
 		}
+		}
+		
 	}
 
 	//method to send a message to the server to get the message history of a user for last N messages
