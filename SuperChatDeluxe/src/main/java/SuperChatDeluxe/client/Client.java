@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Scanner;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
@@ -69,7 +70,7 @@ public class Client {
 	//method for Sign up
 	private String jwtToken;
 
-	public void signUp(Scanner scanner) throws IOException, InterruptedException {
+	public boolean signUp(Scanner scanner) throws IOException, InterruptedException {
 		gui.addMessage("Enter username: ", true);
 		String username = scanner.nextLine();
 		gui.addMessage("Enter password: ", true);
@@ -77,9 +78,13 @@ public class Client {
 		gui.addMessage("Confirm password: ", true);
 		String confirmPassword = scanner.nextLine();
 
+		if(username.split(" ").length > 1) {
+			gui.addMessage("Signup failed: Username must not contain spaces", true);
+			return false;
+		}
 		if (!password.equals(confirmPassword)) {
-			gui.addMessage("Passwords do not match", true);
-			return;
+			gui.addMessage("Signup failed: Passwords do not match", true);
+			return false;
 		} else {
 			gui.addMessage("Passwords match", true);
 		}
@@ -98,9 +103,14 @@ public class Client {
 		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 		if (response.statusCode() == 200) {
 			this.username = username;
-			gui.addMessage("Signup successful: " + response.body(), true);
+			gui.addMessage("Signup successful! You may login now.", true);
+			return true;
 		} else {
-			gui.addMessage("Signup failed: " + response.body(), true);
+			ObjectMapper errorMapper = new ObjectMapper();
+		    JsonNode jsonResponse = errorMapper.readTree(response.body());
+		    String errorMessage = jsonResponse.get("message").asText();
+			gui.addMessage("Signup failed: " + errorMessage, true);
+			return false;
 		}
 	}
 
@@ -154,9 +164,8 @@ public class Client {
 			String option = scanner.nextLine();
 
 			if ("1".equals(option)) {
-				signUp(scanner);
-				login(scanner);
-				break;
+				boolean signUpSuccess = signUp(scanner);
+				if(signUpSuccess && login(scanner)) break;
 			} else if ("2".equals(option)) {
 				boolean success = login(scanner);
 				if(success) break;
