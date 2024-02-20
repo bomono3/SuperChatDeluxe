@@ -2,15 +2,21 @@ package SuperChatDeluxe.client;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.KeyPair;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +35,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.ConsoleGuiService;
+import SuperChatDeluxe.util.RSA;
 
 
 public class Client {
@@ -36,13 +43,15 @@ public class Client {
 	private BufferedReader bufferedReader;
 	private BufferedWriter bufferedWriter;
 	private String username;
+	private RSA keyHolder = new RSA();
 
 	// Indicates if the client is in live mode or search mode
 	private boolean live = true;
 	private List<String> missedMessages = new ArrayList<>();
 
 	private ConsoleGuiService gui;
-
+	
+	private String jwtToken;
 	public Client(Socket socket, String username) {
 		try {
 			this.socket = socket;
@@ -68,8 +77,6 @@ public class Client {
 	}
 
 	//method for Sign up
-	private String jwtToken;
-
 	public boolean signUp(Scanner scanner) throws IOException, InterruptedException {
 		gui.addMessage("Enter username: ", true);
 		String username = scanner.nextLine();
@@ -88,8 +95,18 @@ public class Client {
 		} else {
 			gui.addMessage("Passwords match", true);
 		}
-
-		User user = new User(username, password);
+		
+		keyHolder.init();
+		User user = new User(username, password, keyHolder.encode(keyHolder.getPublicKey().getEncoded()));
+		File dir = new File("./" + username);
+		dir.mkdir();
+		File privateKeyFile = new File(dir, "privateKey.txt");
+		privateKeyFile.createNewFile();
+		FileWriter fileWriter = new FileWriter("./" + username + "/privateKey.txt");
+		PrintWriter printWriter = new PrintWriter(fileWriter);
+		printWriter.println(keyHolder.encode(keyHolder.getPrivateKey().getEncoded()));
+		printWriter.close();
+		fileWriter.close();
 		ObjectMapper mapper = new ObjectMapper();
 		String json = mapper.writeValueAsString(user);
 
@@ -101,6 +118,7 @@ public class Client {
 				.build();
 
 		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		
 		if (response.statusCode() == 200) {
 			this.username = username;
 			gui.addMessage("Signup successful! You may login now.", true);
@@ -149,6 +167,23 @@ public class Client {
 			
 			// Set the username field upon successful login
 			this.username = username;
+			File file = new File("./" + username + "/privateKey.txt");
+			Scanner fileScanner = new Scanner(file);
+			String privKey = fileScanner.nextLine();
+			fileScanner.close();
+			HttpRequest keyRequest = HttpRequest.newBuilder()
+	                .uri(URI.create("http://localhost:8080/api/user/" + username))
+	                .header("Content-Type", "application/json")
+	                .header("Authorization", "Bearer " + jwtToken)
+	                .GET()
+	                .build();
+
+	        HttpResponse<String> keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofString());
+			Map<String, String> keyResponseMap = mapper.readValue(keyResponse.body(),
+					new TypeReference<Map<String, String>>() {
+					});
+			String pubKey = keyResponseMap.get("publicKey");
+			keyHolder.initFromStrings(privKey, pubKey);
 			gui.addMessage("Login Successful", true);
 			return true;
 		} else {
