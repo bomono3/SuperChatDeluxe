@@ -37,9 +37,9 @@ public class MessageController {
 		return service.getMessageHistory(username);
 	}
 
-	@GetMapping("/message/last/{limit}")
-	public List<Message> getLastMessages(@PathVariable int limit) throws Exception, MethodArgumentTypeMismatchException{
-		return service.getLastMessages(limit);
+	@GetMapping("/message/last/{username}/{limit}")
+	public List<Message> getLastMessages(@PathVariable String username,@PathVariable int limit) throws Exception, MethodArgumentTypeMismatchException{
+		return service.getLastMessages(username, limit);
 	}
 
 	@GetMapping("/message/gone/{username}/{startDateTime}/{endDateTime}")

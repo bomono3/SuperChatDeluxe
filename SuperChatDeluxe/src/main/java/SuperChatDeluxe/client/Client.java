@@ -315,7 +315,7 @@ public class Client {
 	public void fetchLastMessages(int limit) {
 		try {
 			HttpClient client = HttpClient.newHttpClient();
-			String url = String.format("http://localhost:8080/api/message/last/%d", limit);
+			String url = String.format("http://localhost:8080/api/message/last/%s/%d", this.username, limit);
 			HttpRequest request = HttpRequest.newBuilder()
 					.uri(URI.create(url))
 		            .header("Authorization", "Bearer " + jwtToken)
