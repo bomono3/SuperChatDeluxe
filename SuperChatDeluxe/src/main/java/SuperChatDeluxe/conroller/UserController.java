@@ -5,6 +5,8 @@ import SuperChatDeluxe.exception.AlreadyInUseException;
 import SuperChatDeluxe.exception.ResourceNotFoundException;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.UserService;
+import SuperChatDeluxe.service.UserServiceImpl;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +22,9 @@ public class UserController {
 
     @Autowired
     UserService userService;
+    
+    @Autowired
+    UserServiceImpl userServiceImpl;
 
     @PostMapping("/register")
     public ResponseEntity<User> registerUser(@RequestBody User user) throws AlreadyInUseException {
@@ -35,5 +40,13 @@ public class UserController {
         } else {
             throw new ResourceNotFoundException("Username with name: " + username);
         }
+    }
+    
+    @GetMapping("/user/public_key/{username}")
+    public ResponseEntity<String> getPublicKeyByUsername(@PathVariable String username) throws ResourceNotFoundException{
+    	
+    	String publicKey = userServiceImpl.findPublicKeyByUsername(username);
+    	
+    	return ResponseEntity.status(200).body(publicKey);
     }
 }

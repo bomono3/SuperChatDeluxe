@@ -69,6 +69,29 @@ public class HttpsDAO {
 		return response;
 	}
 	
+	public HttpResponse<String> getPublicKeyByUsername(String username, String jwtToken){
+		HttpResponse<String> response = null;
+	    
+	    try {
+			String url = String.format("http://localhost:8080/api/user/public_key/%s", username);
+			
+	    	HttpClient client = HttpClient.newHttpClient();
+	    	HttpRequest request = HttpRequest.newBuilder()
+	                .uri(URI.create(url))
+	                .header("Content-Type", "application/json")
+	                .header("Authorization", "Bearer " + jwtToken)
+	                .GET()
+	                .build();
+
+	    			response = client.send(request, HttpResponse.BodyHandlers.ofString());
+	    }
+	    catch(IOException | InterruptedException e) {
+			System.out.println("Either there was an interruption or an I/O Exception has occured");
+		}
+	    
+		return response;
+	}
+	
 	public void postMessageToDatabase(String username, String jwtToken,String message, boolean isPrivate, String sentTo, LocalDateTime timeSent) {
     	String jsonData;
     	
@@ -161,8 +184,5 @@ public class HttpsDAO {
 		return response;
 		
 	}
-	
-	
-	
 	
 }
