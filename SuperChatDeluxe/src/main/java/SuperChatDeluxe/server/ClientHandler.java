@@ -96,45 +96,7 @@ public class ClientHandler implements Runnable {
 
     }
     
-    public void postMessageToDatabase(String message, boolean isPrivate, String sentTo, LocalDateTime timeSent) {
-    	String jsonData;
-    	
-    	
-    	
-    	if(sentTo.equals("null")) {
-    		jsonData = String.format("{\"username\": \"%s\"," +
-                    "\"message\": \"%s\"," +
-                    "\"isPrivate\": %s," +
-                    "\"timeSent\": \"%s\"}",
-                    this.username, message, isPrivate, timeSent);
-    	}
-    	else {
-    		jsonData = String.format("{\"username\": \"%s\"," +
-    	                                "\"message\": \"%s\"," +
-    	                                "\"isPrivate\": %s," +
-    	                                "\"sentTo\": \"%s\"," +
-    	                                "\"timeSent\": \"%s\"}",
-    	                                this.username, message, isPrivate, sentTo, timeSent);
-    	}
-    	
-
-	   	 HttpClient client = HttpClient.newHttpClient();
-	     
-	   	 String url = String.format("http://localhost:8080/api/message");
-	     
-	     HttpRequest request = HttpRequest.newBuilder()
-	             .uri(URI.create(url))
-	             .header("Content-Type", "application/json")
-	             .header("Authorization", "Bearer " + this.jwt)
-	             .POST(BodyPublishers.ofString(jsonData))
-	             .build();
-	     try {
-	    	 client.send(request, BodyHandlers.ofString());
-	
-	     } catch (Exception e) {
-	    	 e.printStackTrace();
-	     }
-    }
+    
     
 
     private void closeEverything(Socket socket, BufferedWriter out, BufferedReader in) {
@@ -154,5 +116,9 @@ public class ClientHandler implements Runnable {
 
     public String getUsername() {
     	return this.username;
+    }
+    
+    public String getJwt() {
+    	return this.jwt;
     }
 }

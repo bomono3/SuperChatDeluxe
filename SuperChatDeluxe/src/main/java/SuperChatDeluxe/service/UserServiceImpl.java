@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import SuperChatDeluxe.exception.AlreadyInUseException;
+import SuperChatDeluxe.exception.ResourceNotFoundException;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.repository.UserRepository;
 
@@ -39,6 +40,16 @@ public class UserServiceImpl implements UserService {
     public User findUserByUsername(String username) {
         return userRepository.findById(username).orElse(null);
     }
+    
+    public String findPublicKeyByUsername(String username) throws ResourceNotFoundException {
+    	Optional<User> foundUser = userRepository.findById(username);
+    	
+    	if(foundUser.isEmpty()) {
+    		throw new ResourceNotFoundException(username);
+    	}
+    	
+    	
+    	return userRepository.findPublicKeyByUsername(username);
+    }
 
-    // Implement more methods as needed
 }
