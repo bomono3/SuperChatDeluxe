@@ -318,6 +318,7 @@ public class Client {
 			int lastMessageLimit = 10;
 			client.fetchLastMessages(lastMessageLimit);		
 			client.handleUserInput(scanner);
+			
 			scanner.close();
 			client.gui.addMessage("Exited the Chatroom and Application. Goodbye!", false);
 			

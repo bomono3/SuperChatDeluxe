@@ -11,13 +11,16 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 
-
+import SuperChatDeluxe.exception.ResourceNotFoundException;
 import SuperChatDeluxe.model.User;
+import SuperChatDeluxe.service.ConsoleGuiService;
 
 public class HttpsDAO {
+	private ConsoleGuiService gui = new ConsoleGuiService();
 	
 	public HttpResponse<String> postAuthenticateUser(String username, String password){
 		HttpResponse<String> response = null;
@@ -69,10 +72,11 @@ public class HttpsDAO {
 		return response;
 	}
 	
-	public HttpResponse<String> getPublicKeyByUsername(String username, String jwtToken){
-		HttpResponse<String> response = null;
-	    
+	public String getPublicKeyByUsername(String username, String jwtToken) {
+	    String publicKey = "";
+		
 	    try {
+	    	
 			String url = String.format("http://localhost:8080/api/user/public_key/%s", username);
 			
 	    	HttpClient client = HttpClient.newHttpClient();
@@ -83,13 +87,20 @@ public class HttpsDAO {
 	                .GET()
 	                .build();
 
-	    			response = client.send(request, HttpResponse.BodyHandlers.ofString());
+	    			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+	    			if(response.statusCode() != 200) throw new ResourceNotFoundException(username);
+	    			ObjectMapper mapper = new ObjectMapper();
+	    	        publicKey = mapper.readValue(response.body(), new TypeReference<String>(){});
+	    	        
 	    }
 	    catch(IOException | InterruptedException e) {
 			System.out.println("Either there was an interruption or an I/O Exception has occured");
 		}
+	    catch(ResourceNotFoundException e) {
+	    	gui.addMessage(e.getMessage(), true);
+	    }
 	    
-		return response;
+		return publicKey;
 	}
 	
 	public void postMessageToDatabase(String username, String jwtToken,String message, boolean isPrivate, String sentTo, LocalDateTime timeSent) {
