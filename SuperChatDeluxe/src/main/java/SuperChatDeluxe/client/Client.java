@@ -25,7 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -221,7 +223,29 @@ public class Client {
 	//	send message to client handler
 	public void sendMessage(String message) {
 		try {
-			gui.addMessage(message, true);
+			boolean potentialPrivateMessage = message.length() >= 8;
+			if((message.split(" ").length) >= 3 && (potentialPrivateMessage))
+			{
+				if(message.split(" ")[1].substring(0,8).contains("-private"))
+				{
+					if(message.split(" ")[2].contains(username))
+					{
+						
+					}
+					else
+					{
+						gui.addMessage("Private message sent.", true);
+					}
+				}
+				else
+				{
+					gui.addMessage(message, true);
+				}
+			}
+			else
+			{
+				gui.addMessage(message, true);
+			}
 			bufferedWriter.write(message);
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
@@ -261,9 +285,46 @@ public class Client {
 					
 						if (!live) {
 							// In search mode, store messages instead of immediately displaying them
-							missedMessages.add(messageFromGroupChat);
+							if(messageFromGroupChat.split(": ", 2).length >= 2) {
+								String messageWithOnlyUsername = messageFromGroupChat.split(": ", 2)[0];
+								String messageWithoutUsername = messageFromGroupChat.split(": ", 2)[1];
+								if(messageWithOnlyUsername.contains("(private)")) {
+									String decodedMessage;
+									try {
+										decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+									} catch (Exception e) {
+										decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+									}
+									missedMessages.add(messageWithOnlyUsername + ": " + decodedMessage);
+								}
+								else {
+									missedMessages.add(messageFromGroupChat);
+								}
+							} else {
+								gui.addMessage(messageFromGroupChat, false);
+							}
+							
 						} else {
-							gui.addMessage(messageFromGroupChat, false);
+							if(messageFromGroupChat.split(": ", 2).length >= 2) {
+								String messageWithOnlyUsername = messageFromGroupChat.split(": ", 2)[0];
+								String messageWithoutUsername = messageFromGroupChat.split(": ", 2)[1];
+								if(messageWithOnlyUsername.contains("(private)")) {
+									String decodedMessage;
+									try {
+										decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+									} catch (Exception e) {
+										decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+									}
+									gui.addMessage(messageWithOnlyUsername + ": " + decodedMessage, false);
+								}
+								else {
+									gui.addMessage(messageFromGroupChat, false);
+								}
+							}
+							else
+							{
+								gui.addMessage(messageFromGroupChat, false);
+							}
 						}
 					
 				}
@@ -294,7 +355,64 @@ public class Client {
 			} else if ("/exit".equals(input.trim()) && (live == true)) {
 				sendMessage("/exit");
 				return;
-			}	else if (live) {
+			} else if(input.substring(0,8).contains("-private")) {
+				PublicKey recipientKeyData;
+				boolean potentialPrivateMessage = input.length() >= 8;
+				if((input.split(" ").length) >= 3 && (potentialPrivateMessage))
+				{
+					String recipient = input.split(" ", 3)[1];
+					System.out.println(recipient);
+					ObjectMapper mapper = new ObjectMapper();
+					HttpClient client = HttpClient.newHttpClient();
+					HttpRequest keyRequest = HttpRequest.newBuilder()
+			                .uri(URI.create("http://localhost:8080/api/user/" + recipient))
+			                .header("Content-Type", "application/json")
+			                .header("Authorization", "Bearer " + jwtToken)
+			                .GET()
+			                .build();
+			        HttpResponse<String> keyResponse = null;
+					try {
+						keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofString());
+					} catch (IOException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					if(keyResponse.body() == null) {
+						break;
+					}
+					Map<String, String> keyResponseMap = null;
+					try {
+						keyResponseMap = mapper.readValue(keyResponse.body(),
+								new TypeReference<Map<String, String>>() {
+								});
+					} catch (JsonMappingException e) {
+						e.printStackTrace();
+					} catch (JsonProcessingException e) {
+						e.printStackTrace();
+					}
+					String pubKey = keyResponseMap.get("publicKey");
+					recipientKeyData = keyHolder.createPublicKeyFromString(pubKey);
+					String encryptedMessage = null;
+					try {
+						encryptedMessage = keyHolder.encrypt(input.split(" ", 3)[2], recipientKeyData);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					String encryptedMessageSelf = null;
+					try {
+						encryptedMessageSelf = keyHolder.encrypt(input.split(" ", 3)[2], keyHolder.getPublicKey());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					sendMessage(username + ": -private " + recipient + " " + encryptedMessage);
+					sendMessage(username + ": -private " + username + " " + encryptedMessageSelf);
+				}
+				else {
+					gui.addMessage("User does not exist.", true);
+				}
+			}
+				else if (live) {
 				sendMessage(username + ": " + input);
 			}
 		}
@@ -330,9 +448,22 @@ public class Client {
 			//registering JavaTimeModule to handle LocalDateTime
 			mapper.registerModule(new JavaTimeModule());
 			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-
+			
 			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
-
+			for(Message message : messages) {
+				if(message.getIsPrivate() == true)
+				{
+					String messageWithOnlyUsername = message.getMessage().split(": ", 2)[0];
+					String messageWithoutUsername = message.getMessage().split(": ", 2)[1];
+					String decodedMessage;
+					try {
+						decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+					} catch (Exception e) {
+						decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+					}
+					message.setMessage(messageWithOnlyUsername + ": " + decodedMessage);
+				}
+			}
 			gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
 			break;
 		} 
@@ -368,7 +499,6 @@ public class Client {
 			
 //			reverse list so that it shows as oldest -> latest
 			Collections.reverse(messages);
-
 			
 			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
 		} catch (Exception e) {

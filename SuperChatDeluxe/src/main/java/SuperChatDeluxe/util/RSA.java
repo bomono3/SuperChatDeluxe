@@ -3,8 +3,10 @@ package SuperChatDeluxe.util;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -55,6 +57,27 @@ public class RSA {
 		catch(Exception e) {
 			e.printStackTrace();
 		}	
+	}
+	
+	public PublicKey createPublicKeyFromString(String pubKey) {
+		KeyFactory keyFactory = null;
+		PublicKey publicKeyLocal = null;
+		try {
+			keyFactory = KeyFactory.getInstance("RSA");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		X509EncodedKeySpec keySpecPublic = new X509EncodedKeySpec(decode(pubKey));
+		
+		try {
+			publicKeyLocal = keyFactory.generatePublic(keySpecPublic);
+		} catch (InvalidKeySpecException e) {
+			e.printStackTrace();
+		}
+		
+		return publicKeyLocal;
 	}
 	
 	public String encrypt(String message, PublicKey key) throws Exception {
