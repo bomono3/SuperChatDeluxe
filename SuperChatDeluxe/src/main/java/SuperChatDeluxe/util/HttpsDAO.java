@@ -89,13 +89,17 @@ public class HttpsDAO {
 
 	    			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 	    			if(response.statusCode() != 200) throw new ResourceNotFoundException(username);
-	    			ObjectMapper mapper = new ObjectMapper();
-	    	        publicKey = mapper.readValue(response.body(), new TypeReference<String>(){});
+	    	        publicKey = response.body();
 	    	        
 	    }
-	    catch(IOException | InterruptedException e) {
+	    catch(IOException e) {
+	    	e.printStackTrace();
 			System.out.println("Either there was an interruption or an I/O Exception has occured");
 		}
+	    catch(InterruptedException e) {
+	    	e.printStackTrace();
+	    	System.out.println("Interrupt");
+	    }
 	    catch(ResourceNotFoundException e) {
 	    	gui.addMessage(e.getMessage(), true);
 	    }
