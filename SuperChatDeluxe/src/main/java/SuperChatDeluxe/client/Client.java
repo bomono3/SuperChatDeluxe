@@ -333,7 +333,13 @@ public class Client {
 				{
 					String recipient = input.split(" ", 3)[1];
 					String pubKey = httpsDAO.getPublicKeyByUsername(recipient, jwtToken);
-					recipientKeyData = keyHolder.createPublicKeyFromString(pubKey);
+					if((pubKey == null) || (pubKey == "")) {
+						gui.addMessage("User does not exist.", true);
+						continue;
+					} else {
+						recipientKeyData = keyHolder.createPublicKeyFromString(pubKey);
+					}
+					
 					String encryptedMessage = null;
 					try {
 						encryptedMessage = keyHolder.encrypt(input.split(" ", 3)[2], recipientKeyData);
