@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 
 import SuperChatDeluxe.service.ConsoleGuiService;
+import SuperChatDeluxe.util.HttpsDAO;
 
 public class Server {
     private static final int PORT = 5050; // Example port number
@@ -18,10 +19,12 @@ public class Server {
     // Creates a thread-safe list of client handlers
     static List<ClientHandler> clients = Collections.synchronizedList(new ArrayList<ClientHandler>());
     public static ConsoleGuiService gui = new ConsoleGuiService();
+    public static HttpsDAO httpsDAO = new HttpsDAO();
     public static List<String> guiList = new ArrayList<String>() {
 					private static final long serialVersionUID = 1L;
 
 					{add("IP Address: " + IP); add("Port: " + PORT); add("NumberOfConnectedClients: " + clients.size());}};
+					
     public static void main(String[] args) {
     	ConsoleGuiService gui = new ConsoleGuiService();
     	try {
@@ -65,7 +68,7 @@ public class Server {
             }
         	
         	if(!message.contains("SERVER: " + sender.getUsername())) {
-        		sender.postMessageToDatabase(message, false, "null", LocalDateTime.now());
+        		 httpsDAO.postMessageToDatabase(sender.getUsername(), sender.getJwt(), message, false, "null", LocalDateTime.now());
         	}
         	
         }
@@ -76,7 +79,7 @@ public class Server {
     		for (ClientHandler client : clients) {
                 if (client.getUsername().equals(username)) {
                     client.sendMessage(message);
-                    sender.postMessageToDatabase(message, true, client.getUsername(), LocalDateTime.now());
+                    httpsDAO.postMessageToDatabase(sender.getUsername(), sender.getJwt(), message, true, client.getUsername(), LocalDateTime.now());
                     return;
                 }
             }

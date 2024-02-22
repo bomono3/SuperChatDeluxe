@@ -11,16 +11,13 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -38,6 +35,7 @@ import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.ConsoleGuiService;
 import SuperChatDeluxe.util.RSA;
+import SuperChatDeluxe.util.HttpsDAO;
 
 
 public class Client {
@@ -46,6 +44,7 @@ public class Client {
 	private BufferedWriter bufferedWriter;
 	private String username;
 	private RSA keyHolder = new RSA();
+	private static HttpsDAO httpsDAO = new HttpsDAO();
 
 	// Indicates if the client is in live mode or search mode
 	private boolean live = true;
@@ -99,7 +98,7 @@ public class Client {
 		}
 		
 		keyHolder.init();
-		User user = new User(username, password, keyHolder.encode(keyHolder.getPublicKey().getEncoded()));
+		
 		File dir = new File("./" + username);
 		dir.mkdir();
 		File privateKeyFile = new File(dir, "privateKey.txt");
@@ -109,19 +108,13 @@ public class Client {
 		printWriter.println(keyHolder.encode(keyHolder.getPrivateKey().getEncoded()));
 		printWriter.close();
 		fileWriter.close();
-		ObjectMapper mapper = new ObjectMapper();
-		String json = mapper.writeValueAsString(user);
-
-		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create("http://localhost:8080/api/register"))
-				.header("Content-Type", "application/json")
-				.POST(HttpRequest.BodyPublishers.ofString(json))
-				.build();
-
-		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    
+		User user = new User(username, password, keyHolder.encode(keyHolder.getPublicKey().getEncoded()));
+    
+		HttpResponse<String> response = httpsDAO.postRegisterUser(user);
 		
-		if (response.statusCode() == 200) {
+		
+		if (response != null && response.statusCode() == 200) {
 			this.username = username;
 			gui.addMessage("Signup successful! You may login now.", true);
 			return true;
@@ -143,22 +136,10 @@ public class Client {
         String password = scanner.nextLine();
 
         // Creating the payload using a Map
-        Map<String, String> credentials = new HashMap<>();
-        credentials.put("username", username);
-        credentials.put("password", password);
-
         ObjectMapper mapper = new ObjectMapper();
-        String json = mapper.writeValueAsString(credentials);
-
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/authenticate"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-		if (response.statusCode() == 200 || response.statusCode() == 201) {
+        HttpResponse<String> response = httpsDAO.postAuthenticateUser(username, password);
+        
+		if (response != null && response.statusCode() == 201) {
 
 			Map<String, String> responseMap = mapper.readValue(response.body(),
 					new TypeReference<Map<String, String>>() {
@@ -432,16 +413,7 @@ public class Client {
 		String endDateTime = endDate + "T23:59:59";
 
 		try {
-			HttpClient client = HttpClient.newHttpClient();
-			String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
-			HttpRequest request = HttpRequest.newBuilder()
-					.uri(URI.create(url))
-		            .header("Authorization", "Bearer " + jwtToken)
-					.GET()
-					.build();
-
-			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+			HttpResponse<String> response = httpsDAO.getMessageBetweenDates(this.username, this.jwtToken, startDateTime, endDateTime);
 
 			ObjectMapper mapper = new ObjectMapper();
 
@@ -480,15 +452,7 @@ public class Client {
 	//method to send a message to the server to get the message history of a user for last N messages
 	public void fetchLastMessages(int limit) {
 		try {
-			HttpClient client = HttpClient.newHttpClient();
-			String url = String.format("http://localhost:8080/api/message/last/%d", limit);
-			HttpRequest request = HttpRequest.newBuilder()
-					.uri(URI.create(url))
-		            .header("Authorization", "Bearer " + jwtToken)
-					.GET()
-					.build();
-
-			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> response = httpsDAO.getLastMessages(this.username, jwtToken, limit);
 
 			ObjectMapper mapper = new ObjectMapper();
 			mapper.registerModule(new JavaTimeModule());
@@ -518,8 +482,9 @@ public class Client {
 
 			// Fetch last 10 messages
 			int lastMessageLimit = 10;
-			client.fetchLastMessages(lastMessageLimit);
+			client.fetchLastMessages(lastMessageLimit);		
 			client.handleUserInput(scanner);
+			
 			scanner.close();
 			client.gui.addMessage("Exited the Chatroom and Application. Goodbye!", false);
 			
