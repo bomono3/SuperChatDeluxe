@@ -355,7 +355,7 @@ public class Client {
 			} else if ("/exit".equals(input.trim()) && (live == true)) {
 				sendMessage("/exit");
 				return;
-			} else if(input.substring(0,8).contains("-private")) {
+			} else if(input.startsWith("-private")) {
 				PublicKey recipientKeyData;
 				boolean potentialPrivateMessage = input.length() >= 8;
 				if((input.split(" ").length) >= 3 && (potentialPrivateMessage))
