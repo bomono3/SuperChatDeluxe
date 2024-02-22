@@ -77,14 +77,14 @@ public class Server {
     public static void privateMessage(String message, String username, ClientHandler sender) {
     	synchronized (clients) { // Synchronize on the clients list to ensure thread safety during iteration
     		for (ClientHandler client : clients) {
-                if (client != sender && client.getUsername().equals(username)) {
+                if (client.getUsername().equals(username)) {
                     client.sendMessage(message);
                     httpsDAO.postMessageToDatabase(sender.getUsername(), sender.getJwt(), message, true, client.getUsername(), LocalDateTime.now());
                     return;
                 }
             }
     		
-    		sender.sendMessage("User with username " + username + " does not exist.");
+    		sender.sendMessage("User with username " + username + " does not exist. Or is not online.");
     		
         }
     }
