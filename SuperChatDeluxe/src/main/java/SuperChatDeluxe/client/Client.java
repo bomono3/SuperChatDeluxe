@@ -154,18 +154,8 @@ public class Client {
 			Scanner fileScanner = new Scanner(file);
 			String privKey = fileScanner.nextLine();
 			fileScanner.close();
-			HttpRequest keyRequest = HttpRequest.newBuilder()
-	                .uri(URI.create("http://localhost:8080/api/user/" + username))
-	                .header("Content-Type", "application/json")
-	                .header("Authorization", "Bearer " + jwtToken)
-	                .GET()
-	                .build();
-
-	        HttpResponse<String> keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofString());
-			Map<String, String> keyResponseMap = mapper.readValue(keyResponse.body(),
-					new TypeReference<Map<String, String>>() {
-					});
-			String pubKey = keyResponseMap.get("publicKey");
+			
+			String pubKey = httpsDAO.getPublicKeyByUsername(username, jwtToken);
 			keyHolder.initFromStrings(privKey, pubKey);
 			gui.addMessage("Login Successful", true);
 			return true;
@@ -342,37 +332,7 @@ public class Client {
 				if((input.split(" ").length) >= 3 && (potentialPrivateMessage))
 				{
 					String recipient = input.split(" ", 3)[1];
-					System.out.println(recipient);
-					ObjectMapper mapper = new ObjectMapper();
-					HttpClient client = HttpClient.newHttpClient();
-					HttpRequest keyRequest = HttpRequest.newBuilder()
-			                .uri(URI.create("http://localhost:8080/api/user/" + recipient))
-			                .header("Content-Type", "application/json")
-			                .header("Authorization", "Bearer " + jwtToken)
-			                .GET()
-			                .build();
-			        HttpResponse<String> keyResponse = null;
-					try {
-						keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofString());
-					} catch (IOException e) {
-						e.printStackTrace();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					if(keyResponse.body() == null) {
-						break;
-					}
-					Map<String, String> keyResponseMap = null;
-					try {
-						keyResponseMap = mapper.readValue(keyResponse.body(),
-								new TypeReference<Map<String, String>>() {
-								});
-					} catch (JsonMappingException e) {
-						e.printStackTrace();
-					} catch (JsonProcessingException e) {
-						e.printStackTrace();
-					}
-					String pubKey = keyResponseMap.get("publicKey");
+					String pubKey = httpsDAO.getPublicKeyByUsername(recipient, jwtToken);
 					recipientKeyData = keyHolder.createPublicKeyFromString(pubKey);
 					String encryptedMessage = null;
 					try {
