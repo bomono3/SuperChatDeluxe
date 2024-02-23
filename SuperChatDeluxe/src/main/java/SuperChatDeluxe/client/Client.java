@@ -29,19 +29,24 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.ConsoleGuiService;
+import SuperChatDeluxe.service.JSwingGuiService;
 
 
-public class Client {
+public class Client implements JSwingGuiService.MessageCallback{
 	private Socket socket;
 	private BufferedReader bufferedReader;
 	private BufferedWriter bufferedWriter;
 	private String username;
+	//lance: flag for user decision 
+	private boolean isConsoleGui = true;
 
 	// Indicates if the client is in live mode or search mode
 	private boolean live = true;
 	private List<String> missedMessages = new ArrayList<>();
 
 	private ConsoleGuiService gui;
+	//lance: new swingGui
+	private JSwingGuiService swingGui;
 
 	public Client(Socket socket, String username) {
 		try {
@@ -165,11 +170,47 @@ public class Client {
 
 			if ("1".equals(option)) {
 				boolean signUpSuccess = signUp(scanner);
-				if(signUpSuccess && login(scanner)) break;
-			} else if ("2".equals(option)) {
+				if(signUpSuccess && login(scanner)) {
+					
+					//lance: extra layer of decisions because of JSwing 
+					gui.addMessage("Please enter 1 for console GUI or 2 for JSwing GUI.", true);
+					option = scanner.nextLine();
+					if(option.equals("2")) {
+						//lance: upon successful login and user wants JSwing, start up the GUI
+						isConsoleGui = false;
+						swingGui = new JSwingGuiService();
+						swingGui.setMessageCallback(this);
+						break;
+					}
+					else if(option.equals("1"))
+						break;
+					else
+						gui.addMessage("Invalid option. Please enter 1 for console GUI or 2 for JSwing GUI", true);
+					
+				}
+			} 
+			else if ("2".equals(option)) {
 				boolean success = login(scanner);
-				if(success) break;
-			} else {
+				if(success) {
+					
+					//lance: extra layer of decisions because of JSwing 
+					gui.addMessage("Please enter 1 for console GUI or 2 for JSwing GUI.", true);
+					option = scanner.nextLine();
+					if(option.equals("2")) {
+						//lance: upon successful login and user wants JSwing, start up the GUI
+						isConsoleGui = false;
+						swingGui = new JSwingGuiService();
+						swingGui.setMessageCallback(this);
+						break;
+					}
+					else if(option.equals("1")){
+						break;
+					}
+					else
+						gui.addMessage("Invalid option. Please enter 1 for console GUI or 2 for JSwing GUI", true);
+				}
+			} 
+			else {
 				gui.addMessage("Invalid option. Please enter 1 for Sign Up or 2 for Login.", true);
 			}
 		}
@@ -186,8 +227,16 @@ public class Client {
 	//	send message to client handler
 	public void sendMessage(String message) {
 		try {
-			gui.addMessage(message, true);
-			bufferedWriter.write(message);
+	
+			//lance: !live not needed for chatroom capabilities, was WIP
+			if(isConsoleGui || !live) {
+				gui.addMessage(message, true);
+				bufferedWriter.write(message);
+			}
+			else {
+				swingGui.addMessage(username + ": " + message);
+				bufferedWriter.write(username + ": " + message);
+			}
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
 
@@ -195,6 +244,7 @@ public class Client {
 			closeEverything(socket, bufferedReader, bufferedWriter);
 		}
 	}
+	
 
 	public void sendUsername(String username) {
 		try {
@@ -229,6 +279,8 @@ public class Client {
 							missedMessages.add(messageFromGroupChat);
 						} else {
 							gui.addMessage(messageFromGroupChat, false);
+							if(!isConsoleGui)
+								swingGui.addMessage(messageFromGroupChat);
 						}
 					
 				}
@@ -240,19 +292,33 @@ public class Client {
 		}).start();
 	}
 
+	//lance: added conditional checks to allow whatever is inputted into the console to also be displayed to the JSwing
 	public void handleUserInput(Scanner scanner) {
 		while (socket.isConnected()) {
+			
 			String input = scanner.nextLine();
 			// Toggle live/search mode based on user commands
 			if ("/search".equals(input.trim())) {
 				live = false; // Enter search mode
 				System.out.println("You're now in search mode.");
+				sendMessage("/search");
+				enterSearchMode();
+				
+				if(!isConsoleGui) {
+					swingGui.clearChat();
+					swingGui.addMessage("You are now in search mode.\n");
+				}
 				searchBetweenDates(scanner);
 
 			// Exit search mode and display missed messages
 			} else if ("/exit".equals(input.trim()) && (live == false)) {
 				live = true;
+				exitSearchMode();
 				gui.initializeConsoleChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
+				
+				if(!isConsoleGui)
+					swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
+				
 				missedMessages.clear();
 
 			// Send message to server if in live mode
@@ -265,48 +331,75 @@ public class Client {
 		}
 		scanner.close();
 	}
+	
+	//lance: WIP
+	private void enterSearchMode() {
+		live = false;
+		swingGui.clearChat();
+		swingGui.addMessage("You are now in search mode.\n");
+	}
+	
+	//lance: WIP
+	private void exitSearchMode() {
+		live = true;
+		swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
+	}
+	
 
 	// This method sends a request to the server to get messages between two dates
+	//lance: added conditional checks to allow whatever is inputted into the console to also be displayed to the JSwing
 	public void searchBetweenDates(Scanner scanner) {
 		while(true) {
-		//should be when search between dates is selected
-		gui.addMessage("Enter start date (YYYY-MM-DD):", true);
-		String startDate = scanner.nextLine();
-		String startDateTime = startDate + "T00:00:01";
-		//should be when search is exited
-		gui.addMessage("Enter end date (YYYY-MM-DD):", true);
-		String endDate = scanner.nextLine();
-		String endDateTime = endDate + "T23:59:59";
+			//should be when search between dates is selected
+			gui.addMessage("Enter start date (YYYY-MM-DD):", true);
+			if(!isConsoleGui)
+				swingGui.addMessage("Enter start date (YYYY-MM-DD):");
+			
+			String startDate = scanner.nextLine();
+			String startDateTime = startDate + "T00:00:01";
+			//should be when search is exited
+			gui.addMessage("Enter end date (YYYY-MM-DD):", true);
+			if(!isConsoleGui)
+				swingGui.addMessage("Enter end date (YYYY-MM-DD):");
+			
+			String endDate = scanner.nextLine();
+			String endDateTime = endDate + "T23:59:59";
 
-		try {
-			HttpClient client = HttpClient.newHttpClient();
-			String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
-			HttpRequest request = HttpRequest.newBuilder()
+			try {
+				HttpClient client = HttpClient.newHttpClient();
+				String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
+				HttpRequest request = HttpRequest.newBuilder()
 					.uri(URI.create(url))
 		            .header("Authorization", "Bearer " + jwtToken)
 					.GET()
 					.build();
 
-			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+				HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
 
-			ObjectMapper mapper = new ObjectMapper();
+				ObjectMapper mapper = new ObjectMapper();
 
-			//registering JavaTimeModule to handle LocalDateTime
-			mapper.registerModule(new JavaTimeModule());
-			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+				//registering JavaTimeModule to handle LocalDateTime
+				mapper.registerModule(new JavaTimeModule());
+				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
+				List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
 
-			gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
-			break;
-		} 
-		catch(IllegalArgumentException | MismatchedInputException e) {
-			gui.addMessage("Invalid Format in Input. Must be YYYY-MM-DD", true);
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
+				gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
+				if(!isConsoleGui)
+					swingGui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
+			
+				break;
+			} 
+			catch(IllegalArgumentException | MismatchedInputException e) {
+				gui.addMessage("Invalid Format in Input. Must be YYYY-MM-DD", true);
+				if(!isConsoleGui)
+					swingGui.addMessage("Invalid Format in Input. Must be YYYY-MM-DD");
+			}
+			
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 		
 	}
@@ -331,11 +424,13 @@ public class Client {
 			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>() {
 			});
 			
-//			reverse list so that it shows as oldest -> latest
+			//reverse list so that it shows as oldest -> latest
 			Collections.reverse(messages);
 
 			
 			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
+			if(!isConsoleGui)
+				swingGui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -350,6 +445,7 @@ public class Client {
 			Client client = new Client(socket, null);
 			client.userAuthenticate(scanner);
 			client.listenForMessage();
+			
 
 			// Fetch last 10 messages
 			int lastMessageLimit = 10;
@@ -357,7 +453,6 @@ public class Client {
 			client.handleUserInput(scanner);
 			scanner.close();
 			client.gui.addMessage("Exited the Chatroom and Application. Goodbye!", false);
-			
 
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
