@@ -273,6 +273,46 @@ public class Client implements JSwingGuiService.MessageCallback{
 						swingGui.searchBetweenDates(username, jwtToken, keyHolder);
 						return;
 				}
+				else if(message.startsWith("-private")) {
+					PublicKey recipientKeyData;
+					boolean potentialPrivateMessage = message.length() >= 8;
+					if((message.split(" ").length) >= 3 && (potentialPrivateMessage))
+					{
+						String recipient = message.split(" ", 3)[1];
+						String pubKey = httpsDAO.getPublicKeyByUsername(recipient, jwtToken);
+						if((pubKey == null) || (pubKey == "")) {
+							swingGui.addMessage("User does not exist.");
+							return;
+						} else {
+							recipientKeyData = keyHolder.createPublicKeyFromString(pubKey);
+						}
+						
+						String encryptedMessage = null;
+						try {
+							encryptedMessage = keyHolder.encrypt(message.split(" ", 3)[2], recipientKeyData);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						String encryptedMessageSelf = null;
+						try {
+							encryptedMessageSelf = keyHolder.encrypt(message.split(" ", 3)[2], keyHolder.getPublicKey());
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						bufferedWriter.write(username + ": -private " + recipient + " " + encryptedMessage);
+						bufferedWriter.newLine();
+						bufferedWriter.flush();
+						
+						bufferedWriter.write(username + ": -private " + username + " " + encryptedMessageSelf);
+						bufferedWriter.newLine();
+						bufferedWriter.flush();
+						return;
+					}
+					else {
+						swingGui.addMessage("Private command incomplete. Must be in the form (-private username message)");
+						return;
+					}
+				}
 				else {
 					swingGui.addMessage(username + ": " + message);
 					bufferedWriter.write(username + ": " + message);
@@ -354,7 +394,7 @@ public class Client implements JSwingGuiService.MessageCallback{
 									
 									gui.addMessage(messageWithOnlyUsername + ": " + decodedMessage, false);
 									if(!isConsoleGui)
-										swingGui.addMessage(messageFromGroupChat);
+										swingGui.addMessage(messageWithOnlyUsername + ": " + decodedMessage);
 								}
 								else {
 									gui.addMessage(messageFromGroupChat, false);
