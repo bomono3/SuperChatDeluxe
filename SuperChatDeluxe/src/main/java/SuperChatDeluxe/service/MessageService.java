@@ -48,8 +48,8 @@ public class MessageService {
 			
 		}
 		
-		public List<Message> getLastMessages(int limit) throws Exception{
-			List<Message> messages = repo.getLastMessages(limit);
+		public List<Message> getLastMessages(String username, int limit) throws Exception{
+			List<Message> messages = repo.getLastMessages(username ,limit);
 			
 			return messages;
 		}

@@ -2,24 +2,29 @@ package SuperChatDeluxe.client;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.KeyPair;
+import java.security.PublicKey;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -30,6 +35,9 @@ import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.ConsoleGuiService;
 import SuperChatDeluxe.service.JSwingGuiService;
+import SuperChatDeluxe.util.RSA;
+import SuperChatDeluxe.util.HttpsDAO;
+
 
 
 public class Client implements JSwingGuiService.MessageCallback{
@@ -37,8 +45,10 @@ public class Client implements JSwingGuiService.MessageCallback{
 	private BufferedReader bufferedReader;
 	private BufferedWriter bufferedWriter;
 	private String username;
-	//lance: flag for user decision 
 	private boolean isConsoleGui = true;
+	private RSA keyHolder = new RSA();
+	private static HttpsDAO httpsDAO = new HttpsDAO();
+
 
 	// Indicates if the client is in live mode or search mode
 	private boolean live = true;
@@ -47,6 +57,7 @@ public class Client implements JSwingGuiService.MessageCallback{
 	private ConsoleGuiService gui;
 	//lance: new swingGui
 	private JSwingGuiService swingGui;
+	private String jwtToken;
 
 	public Client(Socket socket, String username) {
 		try {
@@ -73,8 +84,6 @@ public class Client implements JSwingGuiService.MessageCallback{
 	}
 
 	//method for Sign up
-	private String jwtToken;
-
 	public boolean signUp(Scanner scanner) throws IOException, InterruptedException {
 		gui.addMessage("Enter username: ", true);
 		String username = scanner.nextLine();
@@ -93,20 +102,25 @@ public class Client implements JSwingGuiService.MessageCallback{
 		} else {
 			gui.addMessage("Passwords match", true);
 		}
-
-		User user = new User(username, password);
-		ObjectMapper mapper = new ObjectMapper();
-		String json = mapper.writeValueAsString(user);
-
-		HttpClient client = HttpClient.newHttpClient();
-		HttpRequest request = HttpRequest.newBuilder()
-				.uri(URI.create("http://localhost:8080/api/register"))
-				.header("Content-Type", "application/json")
-				.POST(HttpRequest.BodyPublishers.ofString(json))
-				.build();
-
-		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-		if (response.statusCode() == 200) {
+		
+		keyHolder.init();
+		
+		File dir = new File("./" + username);
+		dir.mkdir();
+		File privateKeyFile = new File(dir, "privateKey.txt");
+		privateKeyFile.createNewFile();
+		FileWriter fileWriter = new FileWriter("./" + username + "/privateKey.txt");
+		PrintWriter printWriter = new PrintWriter(fileWriter);
+		printWriter.println(keyHolder.encode(keyHolder.getPrivateKey().getEncoded()));
+		printWriter.close();
+		fileWriter.close();
+    
+		User user = new User(username, password, keyHolder.encode(keyHolder.getPublicKey().getEncoded()));
+    
+		HttpResponse<String> response = httpsDAO.postRegisterUser(user);
+		
+		
+		if (response != null && response.statusCode() == 200) {
 			this.username = username;
 			gui.addMessage("Signup successful! You may login now.", true);
 			return true;
@@ -128,22 +142,10 @@ public class Client implements JSwingGuiService.MessageCallback{
         String password = scanner.nextLine();
 
         // Creating the payload using a Map
-        Map<String, String> credentials = new HashMap<>();
-        credentials.put("username", username);
-        credentials.put("password", password);
-
         ObjectMapper mapper = new ObjectMapper();
-        String json = mapper.writeValueAsString(credentials);
-
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/authenticate"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
-
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-		if (response.statusCode() == 200 || response.statusCode() == 201) {
+        HttpResponse<String> response = httpsDAO.postAuthenticateUser(username, password);
+        
+		if (response != null && response.statusCode() == 201) {
 
 			Map<String, String> responseMap = mapper.readValue(response.body(),
 					new TypeReference<Map<String, String>>() {
@@ -154,6 +156,13 @@ public class Client implements JSwingGuiService.MessageCallback{
 			
 			// Set the username field upon successful login
 			this.username = username;
+			File file = new File("./" + username + "/privateKey.txt");
+			Scanner fileScanner = new Scanner(file);
+			String privKey = fileScanner.nextLine();
+			fileScanner.close();
+			
+			String pubKey = httpsDAO.getPublicKeyByUsername(username, jwtToken);
+			keyHolder.initFromStrings(privKey, pubKey);
 			gui.addMessage("Login Successful", true);
 			return true;
 		} else {
@@ -230,13 +239,25 @@ public class Client implements JSwingGuiService.MessageCallback{
 	
 			//lance: !live not needed for chatroom capabilities, was WIP
 			if(isConsoleGui) {
+				boolean potentialPrivateMessage = message.length() >= 8;
+				if((message.split(" ").length) >= 3 && (potentialPrivateMessage)){
+					
+					if(message.split(" ")[1].startsWith("-private")){
+						if(!message.split(" ")[2].contains(username)){
+							gui.addMessage("Private message sent.", true);
+						}
+					}
+					else{
+						gui.addMessage(message, true);
+					}
+				}
+
 				gui.addMessage(message, true);
 				bufferedWriter.write(message);
 			}
 			else {
 				if(message.startsWith("/exit") && swingGui.getLive()) {
 					bufferedWriter.write(message);
-
 				}
 				else if(message.startsWith("/exit") && !swingGui.getLive()) {
 					live = true;
@@ -249,7 +270,7 @@ public class Client implements JSwingGuiService.MessageCallback{
 						bufferedWriter.write(message);
 						bufferedWriter.newLine();
 						bufferedWriter.flush();
-						swingGui.searchBetweenDates(username, jwtToken);
+						swingGui.searchBetweenDates(username, jwtToken, keyHolder);
 						return;
 				}
 				else {
@@ -258,6 +279,7 @@ public class Client implements JSwingGuiService.MessageCallback{
 				}
 				
 			}
+
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
 
@@ -267,7 +289,7 @@ public class Client implements JSwingGuiService.MessageCallback{
 	}
 	
 
-	public void sendUsername(String username) {
+	public void sendUsername(String username){
 		try {
 			bufferedWriter.write(username);
 			bufferedWriter.newLine();
@@ -297,11 +319,56 @@ public class Client implements JSwingGuiService.MessageCallback{
 					
 						if (!live) {
 							// In search mode, store messages instead of immediately displaying them
-							missedMessages.add(messageFromGroupChat);
+							if(messageFromGroupChat.split(": ", 2).length >= 2) {
+								String messageWithOnlyUsername = messageFromGroupChat.split(": ", 2)[0];
+								String messageWithoutUsername = messageFromGroupChat.split(": ", 2)[1];
+								if(messageWithOnlyUsername.contains("(private)")) {
+									String decodedMessage;
+									try {
+										decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+									} catch (Exception e) {
+										decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+									}
+									missedMessages.add(messageWithOnlyUsername + ": " + decodedMessage);
+								}
+								else {
+									missedMessages.add(messageFromGroupChat);
+								}
+							} else {
+								gui.addMessage(messageFromGroupChat, false);
+								
+//								why add message if not live?
+							}
+							
 						} else {
-							gui.addMessage(messageFromGroupChat, false);
-							if(!isConsoleGui)
-								swingGui.addMessage(messageFromGroupChat);
+							if(messageFromGroupChat.split(": ", 2).length >= 2) {
+								String messageWithOnlyUsername = messageFromGroupChat.split(": ", 2)[0];
+								String messageWithoutUsername = messageFromGroupChat.split(": ", 2)[1];
+								if(messageWithOnlyUsername.contains("(private)")) {
+									String decodedMessage;
+									try {
+										decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+									} catch (Exception e) {
+										decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+									}
+									
+									gui.addMessage(messageWithOnlyUsername + ": " + decodedMessage, false);
+									if(!isConsoleGui)
+										swingGui.addMessage(messageFromGroupChat);
+								}
+								else {
+									gui.addMessage(messageFromGroupChat, false);
+									if(!isConsoleGui)
+										swingGui.addMessage(messageFromGroupChat);
+								}
+							}
+							else
+							{
+								gui.addMessage(messageFromGroupChat, false);
+								if(!isConsoleGui)
+									swingGui.addMessage(messageFromGroupChat);
+							}
+
 						}
 					
 				}
@@ -321,31 +388,52 @@ public class Client implements JSwingGuiService.MessageCallback{
 			if ("/search".equals(input.trim())) {
 				live = false; // Enter search mode
 				System.out.println("You're now in search mode.");
-				sendMessage("/search");
-				enterSearchMode();
-				
-				if(!isConsoleGui) {
-					swingGui.clearChat();
-					swingGui.addMessage("You are now in search mode.\n");
-				}
 				searchBetweenDates(scanner);
 
 			// Exit search mode and display missed messages
 			} else if ("/exit".equals(input.trim()) && (live == false)) {
 				live = true;
-				exitSearchMode();
 				gui.initializeConsoleChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
-				
-//				if(!isConsoleGui)
-//					swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
-				
 				missedMessages.clear();
 
 			// Send message to server if in live mode
 			} else if ("/exit".equals(input.trim()) && (live == true)) {
 				sendMessage("/exit");
 				return;
-			}	else if (live) {
+			} else if(input.startsWith("-private")) {
+				PublicKey recipientKeyData;
+				boolean potentialPrivateMessage = input.length() >= 8;
+				if((input.split(" ").length) >= 3 && (potentialPrivateMessage))
+				{
+					String recipient = input.split(" ", 3)[1];
+					String pubKey = httpsDAO.getPublicKeyByUsername(recipient, jwtToken);
+					if((pubKey == null) || (pubKey == "")) {
+						gui.addMessage("User does not exist.", true);
+						continue;
+					} else {
+						recipientKeyData = keyHolder.createPublicKeyFromString(pubKey);
+					}
+					
+					String encryptedMessage = null;
+					try {
+						encryptedMessage = keyHolder.encrypt(input.split(" ", 3)[2], recipientKeyData);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					String encryptedMessageSelf = null;
+					try {
+						encryptedMessageSelf = keyHolder.encrypt(input.split(" ", 3)[2], keyHolder.getPublicKey());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					sendMessage(username + ": -private " + recipient + " " + encryptedMessage);
+					sendMessage(username + ": -private " + username + " " + encryptedMessageSelf);
+				}
+				else {
+					gui.addMessage("User does not exist.", true);
+				}
+			}
+				else if (live) {
 				sendMessage(username + ": " + input);
 			}
 		}
@@ -385,41 +473,40 @@ public class Client implements JSwingGuiService.MessageCallback{
 			String endDate = scanner.nextLine();
 			String endDateTime = endDate + "T23:59:59";
 
-			try {
-				HttpClient client = HttpClient.newHttpClient();
-				String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", this.username, startDateTime, endDateTime);
-				HttpRequest request = HttpRequest.newBuilder()
-					.uri(URI.create(url))
-		            .header("Authorization", "Bearer " + jwtToken)
-					.GET()
-					.build();
-
-				HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+		try {
+			HttpResponse<String> response = httpsDAO.getMessageBetweenDates(this.username, this.jwtToken, startDateTime, endDateTime);
 
 				ObjectMapper mapper = new ObjectMapper();
 
-				//registering JavaTimeModule to handle LocalDateTime
-				mapper.registerModule(new JavaTimeModule());
-				mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-				List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
-
-				gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
-				if(!isConsoleGui)
-					swingGui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
+			//registering JavaTimeModule to handle LocalDateTime
+			mapper.registerModule(new JavaTimeModule());
+			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 			
-				break;
-			} 
-			catch(IllegalArgumentException | MismatchedInputException e) {
-				gui.addMessage("Invalid Format in Input. Must be YYYY-MM-DD", true);
-				if(!isConsoleGui)
-					swingGui.addMessage("Invalid Format in Input. Must be YYYY-MM-DD");
+			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
+			for(Message message : messages) {
+				if(message.getIsPrivate() == true)
+				{
+					String messageWithOnlyUsername = message.getMessage().split(": ", 2)[0];
+					String messageWithoutUsername = message.getMessage().split(": ", 2)[1];
+					String decodedMessage;
+					try {
+						decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+					} catch (Exception e) {
+						decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+					}
+					message.setMessage(messageWithOnlyUsername + ": " + decodedMessage);
+				}
 			}
-			
-			catch (Exception e) {
-				e.printStackTrace();
-			}
+			gui.displaySearch("Messages between " + startDate + " and " + endDate, messages);
+			break;
+		} 
+		catch(IllegalArgumentException | MismatchedInputException e) {
+			gui.addMessage("Invalid Format in Input. Must be YYYY-MM-DD", true);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 		}
 		
 	}
@@ -427,26 +514,16 @@ public class Client implements JSwingGuiService.MessageCallback{
 	//method to send a message to the server to get the message history of a user for last N messages
 	public void fetchLastMessages(int limit) {
 		try {
-			HttpClient client = HttpClient.newHttpClient();
-			String url = String.format("http://localhost:8080/api/message/last/%d", limit);
-			HttpRequest request = HttpRequest.newBuilder()
-					.uri(URI.create(url))
-		            .header("Authorization", "Bearer " + jwtToken)
-					.GET()
-					.build();
-
-			HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> response = httpsDAO.getLastMessages(this.username, jwtToken, limit);
 
 			ObjectMapper mapper = new ObjectMapper();
 			mapper.registerModule(new JavaTimeModule());
 			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>() {
-			});
+			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
 			
 			//reverse list so that it shows as oldest -> latest
 			Collections.reverse(messages);
-
 			
 			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
 			if(!isConsoleGui)
@@ -469,8 +546,9 @@ public class Client implements JSwingGuiService.MessageCallback{
 
 			// Fetch last 10 messages
 			int lastMessageLimit = 10;
-			client.fetchLastMessages(lastMessageLimit);
+			client.fetchLastMessages(lastMessageLimit);		
 			client.handleUserInput(scanner);
+			
 			scanner.close();
 			client.gui.addMessage("Exited the Chatroom and Application. Goodbye!", false);
 

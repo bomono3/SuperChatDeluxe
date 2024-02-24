@@ -34,7 +34,11 @@ public class ConsoleGuiService {
 			{
 				return;
 			}
-			System.out.println();
+			System.out.print(generalizedChatString + messageHolder.charAt(messageHolder.length() - 1));
+			for( int k = 0; k < (messageLengths - 1); k++) {
+				System.out.print(" ");
+			}
+			System.out.println(generalizedChatString);
 		}
 		else
 		{

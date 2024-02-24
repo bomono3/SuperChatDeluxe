@@ -29,6 +29,7 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import SuperChatDeluxe.model.Message;
+import SuperChatDeluxe.util.RSA;
 
 
 public class JSwingGuiService extends JFrame{
@@ -170,7 +171,7 @@ public class JSwingGuiService extends JFrame{
 	
 	
 //	this uses InputDialog to execute flow in a specific order by waiting for user input for specific prompt
-	public void searchBetweenDates(String username, String jwtToken) {
+	public void searchBetweenDates(String username, String jwtToken, RSA keyHolder) {
 	    // Prompt the user to enter the start date
 	    String startDate = JOptionPane.showInputDialog(this, "Enter start date (YYYY-MM-DD):");
 	    if (startDate == null) { // If user cancels the input dialog
@@ -206,6 +207,21 @@ public class JSwingGuiService extends JFrame{
 
 	        List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
 
+	        for(Message message : messages) {
+				if(message.getIsPrivate() == true)
+				{
+					String messageWithOnlyUsername = message.getMessage().split(": ", 2)[0];
+					String messageWithoutUsername = message.getMessage().split(": ", 2)[1];
+					String decodedMessage;
+					try {
+						decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+					} catch (Exception e) {
+						decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+					}
+					message.setMessage(messageWithOnlyUsername + ": " + decodedMessage);
+				}
+			}
+	        
 	        displaySearch("Messages between " + startDate + " and " + endDate, messages);
 
 	    } catch (IllegalArgumentException | MismatchedInputException e) {
