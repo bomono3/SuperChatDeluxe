@@ -34,25 +34,31 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import SuperChatDeluxe.model.Message;
 import SuperChatDeluxe.model.User;
 import SuperChatDeluxe.service.ConsoleGuiService;
+import SuperChatDeluxe.service.JSwingGuiService;
 import SuperChatDeluxe.util.RSA;
 import SuperChatDeluxe.util.HttpsDAO;
 
 
-public class Client {
+
+public class Client implements JSwingGuiService.MessageCallback{
 	private Socket socket;
 	private BufferedReader bufferedReader;
 	private BufferedWriter bufferedWriter;
 	private String username;
+	private boolean isConsoleGui = true;
 	private RSA keyHolder = new RSA();
 	private static HttpsDAO httpsDAO = new HttpsDAO();
+
 
 	// Indicates if the client is in live mode or search mode
 	private boolean live = true;
 	private List<String> missedMessages = new ArrayList<>();
 
 	private ConsoleGuiService gui;
-	
+	//lance: new swingGui
+	private JSwingGuiService swingGui;
 	private String jwtToken;
+
 	public Client(Socket socket, String username) {
 		try {
 			this.socket = socket;
@@ -173,11 +179,47 @@ public class Client {
 
 			if ("1".equals(option)) {
 				boolean signUpSuccess = signUp(scanner);
-				if(signUpSuccess && login(scanner)) break;
-			} else if ("2".equals(option)) {
+				if(signUpSuccess && login(scanner)) {
+					
+					//lance: extra layer of decisions because of JSwing 
+					gui.addMessage("Please enter 1 for console GUI or 2 for JSwing GUI.", true);
+					option = scanner.nextLine();
+					if(option.equals("2")) {
+						//lance: upon successful login and user wants JSwing, start up the GUI
+						isConsoleGui = false;
+						swingGui = new JSwingGuiService();
+						swingGui.setMessageCallback(this);
+						break;
+					}
+					else if(option.equals("1"))
+						break;
+					else
+						gui.addMessage("Invalid option. Please enter 1 for console GUI or 2 for JSwing GUI", true);
+					
+				}
+			} 
+			else if ("2".equals(option)) {
 				boolean success = login(scanner);
-				if(success) break;
-			} else {
+				if(success) {
+					
+					//lance: extra layer of decisions because of JSwing 
+					gui.addMessage("Please enter 1 for console GUI or 2 for JSwing GUI.", true);
+					option = scanner.nextLine();
+					if(option.equals("2")) {
+						//lance: upon successful login and user wants JSwing, start up the GUI
+						isConsoleGui = false;
+						swingGui = new JSwingGuiService();
+						swingGui.setMessageCallback(this);
+						break;
+					}
+					else if(option.equals("1")){
+						break;
+					}
+					else
+						gui.addMessage("Invalid option. Please enter 1 for console GUI or 2 for JSwing GUI", true);
+				}
+			} 
+			else {
 				gui.addMessage("Invalid option. Please enter 1 for Sign Up or 2 for Login.", true);
 			}
 		}
@@ -194,30 +236,92 @@ public class Client {
 	//	send message to client handler
 	public void sendMessage(String message) {
 		try {
-			boolean potentialPrivateMessage = message.length() >= 8;
-			if((message.split(" ").length) >= 3 && (potentialPrivateMessage))
-			{
-				if(message.split(" ")[1].substring(0,8).contains("-private"))
-				{
-					if(message.split(" ")[2].contains(username))
+	
+			//lance: !live not needed for chatroom capabilities, was WIP
+			if(isConsoleGui) {
+				boolean potentialPrivateMessage = message.length() >= 8;
+				if((message.split(" ").length) >= 3 && (potentialPrivateMessage)){
+					
+					if(message.split(" ")[1].startsWith("-private")){
+						if(!message.split(" ")[2].contains(username)){
+							gui.addMessage("Private message sent.", true);
+						}
+					}
+					else{
+						gui.addMessage(message, true);
+					}
+				}
+				else {
+						gui.addMessage(message, true);
+				}
+			
+				bufferedWriter.write(message);
+			}
+			else {
+				if(message.startsWith("/exit") && swingGui.getLive()) {
+					bufferedWriter.write(message);
+				}
+				else if(message.startsWith("/exit") && !swingGui.getLive()) {
+					live = true;
+					swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
+					swingGui.setLive(true);
+					return;
+				}
+				else if(message.startsWith("/search")) {
+						live = false;
+						bufferedWriter.write(message);
+						bufferedWriter.newLine();
+						bufferedWriter.flush();
+						swingGui.searchBetweenDates(username, jwtToken, keyHolder);
+						return;
+				}
+				else if(message.startsWith("-private")) {
+					PublicKey recipientKeyData;
+					boolean potentialPrivateMessage = message.length() >= 8;
+					if((message.split(" ").length) >= 3 && (potentialPrivateMessage))
 					{
+						String recipient = message.split(" ", 3)[1];
+						String pubKey = httpsDAO.getPublicKeyByUsername(recipient, jwtToken);
+						if((pubKey == null) || (pubKey == "")) {
+							swingGui.addMessage("User does not exist.");
+							return;
+						} else {
+							recipientKeyData = keyHolder.createPublicKeyFromString(pubKey);
+						}
 						
+						String encryptedMessage = null;
+						try {
+							encryptedMessage = keyHolder.encrypt(message.split(" ", 3)[2], recipientKeyData);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						String encryptedMessageSelf = null;
+						try {
+							encryptedMessageSelf = keyHolder.encrypt(message.split(" ", 3)[2], keyHolder.getPublicKey());
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+						bufferedWriter.write(username + ": -private " + recipient + " " + encryptedMessage);
+						bufferedWriter.newLine();
+						bufferedWriter.flush();
+						
+						bufferedWriter.write(username + ": -private " + username + " " + encryptedMessageSelf);
+						bufferedWriter.newLine();
+						bufferedWriter.flush();
+						return;
 					}
-					else
-					{
-						gui.addMessage("Private message sent.", true);
+					else {
+						swingGui.addMessage("Private command incomplete. Must be in the form (-private username message)");
+						return;
 					}
 				}
-				else
-				{
-					gui.addMessage(message, true);
+				else {
+					swingGui.addMessage(username + ": " + message);
+					bufferedWriter.write(username + ": " + message);
 				}
+				
 			}
-			else
-			{
-				gui.addMessage(message, true);
-			}
-			bufferedWriter.write(message);
+
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
 
@@ -225,8 +329,9 @@ public class Client {
 			closeEverything(socket, bufferedReader, bufferedWriter);
 		}
 	}
+	
 
-	public void sendUsername(String username) {
+	public void sendUsername(String username){
 		try {
 			bufferedWriter.write(username);
 			bufferedWriter.newLine();
@@ -273,6 +378,8 @@ public class Client {
 								}
 							} else {
 								gui.addMessage(messageFromGroupChat, false);
+								
+//								why add message if not live?
 							}
 							
 						} else {
@@ -286,20 +393,27 @@ public class Client {
 									} catch (Exception e) {
 										decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
 									}
+									
 									gui.addMessage(messageWithOnlyUsername + ": " + decodedMessage, false);
+									if(!isConsoleGui)
+										swingGui.addMessage(messageWithOnlyUsername + ": " + decodedMessage);
 								}
 								else {
 									gui.addMessage(messageFromGroupChat, false);
+									if(!isConsoleGui)
+										swingGui.addMessage(messageFromGroupChat);
 								}
 							}
 							else
 							{
 								gui.addMessage(messageFromGroupChat, false);
+								if(!isConsoleGui)
+									swingGui.addMessage(messageFromGroupChat);
 							}
+
 						}
 					
 				}
-				
 				closeEverything(socket, bufferedReader, bufferedWriter);
 			} catch (IOException e) {
 				closeEverything(socket, bufferedReader, bufferedWriter);
@@ -307,8 +421,10 @@ public class Client {
 		}).start();
 	}
 
+	//lance: added conditional checks to allow whatever is inputted into the console to also be displayed to the JSwing
 	public void handleUserInput(Scanner scanner) {
 		while (socket.isConnected()) {
+			
 			String input = scanner.nextLine();
 			// Toggle live/search mode based on user commands
 			if ("/search".equals(input.trim())) {
@@ -365,23 +481,45 @@ public class Client {
 		}
 		scanner.close();
 	}
+	
+	//lance: WIP
+	private void enterSearchMode() {
+		live = false;
+		swingGui.clearChat();
+		swingGui.addMessage("You are now in search mode.\n");
+	}
+	
+	//lance: WIP
+	private void exitSearchMode() {
+		live = true;
+		swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
+	}
+	
 
 	// This method sends a request to the server to get messages between two dates
+	//lance: added conditional checks to allow whatever is inputted into the console to also be displayed to the JSwing
 	public void searchBetweenDates(Scanner scanner) {
 		while(true) {
-		//should be when search between dates is selected
-		gui.addMessage("Enter start date (YYYY-MM-DD):", true);
-		String startDate = scanner.nextLine();
-		String startDateTime = startDate + "T00:00:01";
-		//should be when search is exited
-		gui.addMessage("Enter end date (YYYY-MM-DD):", true);
-		String endDate = scanner.nextLine();
-		String endDateTime = endDate + "T23:59:59";
+			//should be when search between dates is selected
+			gui.addMessage("Enter start date (YYYY-MM-DD):", true);
+			if(!isConsoleGui)
+				swingGui.addMessage("Enter start date (YYYY-MM-DD):");
+			
+			String startDate = scanner.nextLine();
+			String startDateTime = startDate + "T00:00:01";
+			//should be when search is exited
+			gui.addMessage("Enter end date (YYYY-MM-DD):", true);
+			if(!isConsoleGui)
+				swingGui.addMessage("Enter end date (YYYY-MM-DD):");
+			
+			String endDate = scanner.nextLine();
+			String endDateTime = endDate + "T23:59:59";
 
 		try {
 			HttpResponse<String> response = httpsDAO.getMessageBetweenDates(this.username, this.jwtToken, startDateTime, endDateTime);
 
 			ObjectMapper mapper = new ObjectMapper();
+
 
 			//registering JavaTimeModule to handle LocalDateTime
 			mapper.registerModule(new JavaTimeModule());
@@ -424,13 +562,29 @@ public class Client {
 			mapper.registerModule(new JavaTimeModule());
 			mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>() {
-			});
+			List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
 			
-//			reverse list so that it shows as oldest -> latest
+			//reverse list so that it shows as oldest -> latest
 			Collections.reverse(messages);
 			
+			for(Message message : messages) {
+				if(message.getIsPrivate() == true)
+				{
+					String messageWithOnlyUsername = message.getMessage().split(": ", 2)[0];
+					String messageWithoutUsername = message.getMessage().split(": ", 2)[1];
+					String decodedMessage;
+					try {
+						decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+					} catch (Exception e) {
+						decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+					}
+					message.setMessage(messageWithOnlyUsername + ": " + decodedMessage);
+				}
+			}
+			
 			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
+			if(!isConsoleGui)
+				swingGui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -445,6 +599,7 @@ public class Client {
 			Client client = new Client(socket, null);
 			client.userAuthenticate(scanner);
 			client.listenForMessage();
+			
 
 			// Fetch last 10 messages
 			int lastMessageLimit = 10;
@@ -453,7 +608,6 @@ public class Client {
 			
 			scanner.close();
 			client.gui.addMessage("Exited the Chatroom and Application. Goodbye!", false);
-			
 
 		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
