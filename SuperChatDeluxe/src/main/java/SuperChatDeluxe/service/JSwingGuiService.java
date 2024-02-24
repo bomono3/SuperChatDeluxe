@@ -158,6 +158,7 @@ public class JSwingGuiService extends JFrame{
 	private void handleExitCommand() {
 		if(messageCallback != null) {
 			messageCallback.sendMessage("/exit");
+			System.exit(0);
 		}
 	}
 	

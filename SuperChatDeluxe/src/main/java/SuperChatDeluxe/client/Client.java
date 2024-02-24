@@ -234,8 +234,15 @@ public class Client implements JSwingGuiService.MessageCallback{
 				bufferedWriter.write(message);
 			}
 			else {
-				swingGui.addMessage(username + ": " + message);
-				bufferedWriter.write(username + ": " + message);
+				if(message.startsWith("/exit") || message.startsWith("/search")) {
+					swingGui.addMessage(message);
+					bufferedWriter.write(message);
+				}
+				else {
+					swingGui.addMessage(username + ": " + message);
+					bufferedWriter.write(username + ": " + message);
+				}
+				
 			}
 			bufferedWriter.newLine();
 			bufferedWriter.flush();
@@ -284,7 +291,6 @@ public class Client implements JSwingGuiService.MessageCallback{
 						}
 					
 				}
-				
 				closeEverything(socket, bufferedReader, bufferedWriter);
 			} catch (IOException e) {
 				closeEverything(socket, bufferedReader, bufferedWriter);
