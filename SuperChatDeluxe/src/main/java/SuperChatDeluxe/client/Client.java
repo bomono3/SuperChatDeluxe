@@ -229,14 +229,28 @@ public class Client implements JSwingGuiService.MessageCallback{
 		try {
 	
 			//lance: !live not needed for chatroom capabilities, was WIP
-			if(isConsoleGui || !live) {
+			if(isConsoleGui) {
 				gui.addMessage(message, true);
 				bufferedWriter.write(message);
 			}
 			else {
-				if(message.startsWith("/exit") || message.startsWith("/search")) {
-					swingGui.addMessage(message);
+				if(message.startsWith("/exit") && swingGui.getLive()) {
 					bufferedWriter.write(message);
+
+				}
+				else if(message.startsWith("/exit") && !swingGui.getLive()) {
+					live = true;
+					swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
+					swingGui.setLive(true);
+					return;
+				}
+				else if(message.startsWith("/search")) {
+						live = false;
+						bufferedWriter.write(message);
+						bufferedWriter.newLine();
+						bufferedWriter.flush();
+						swingGui.searchBetweenDates(username, jwtToken);
+						return;
 				}
 				else {
 					swingGui.addMessage(username + ": " + message);
@@ -322,8 +336,8 @@ public class Client implements JSwingGuiService.MessageCallback{
 				exitSearchMode();
 				gui.initializeConsoleChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
 				
-				if(!isConsoleGui)
-					swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
+//				if(!isConsoleGui)
+//					swingGui.initializeSwingChatGuiReturn("Welcome back to the chat " + username + ".", missedMessages, "Exiting search mode. You're now live.");
 				
 				missedMessages.clear();
 

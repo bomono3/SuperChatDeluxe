@@ -5,16 +5,28 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import SuperChatDeluxe.model.Message;
 
@@ -30,6 +42,7 @@ public class JSwingGuiService extends JFrame{
 	private JTextField inputTextField;
 	private JButton sendButton;
 	private JScrollPane scrollPane;
+	private boolean live = true;
 
 	public JSwingGuiService() {
 		// set up the jFrame
@@ -148,18 +161,73 @@ public class JSwingGuiService extends JFrame{
 	//WIP
 	private void handleSearchCommand() {
 		addMessage("You're now in search mode.");
+		live = false;
 		if(messageCallback != null) {
 			messageCallback.sendMessage("/search");
 		}
 		inputTextField.setText("");
 	}
 	
+	
+//	this uses InputDialog to execute flow in a specific order by waiting for user input for specific prompt
+	public void searchBetweenDates(String username, String jwtToken) {
+	    // Prompt the user to enter the start date
+	    String startDate = JOptionPane.showInputDialog(this, "Enter start date (YYYY-MM-DD):");
+	    if (startDate == null) { // If user cancels the input dialog
+	        return;
+	    }
+
+	    String startDateTime = startDate + "T00:00:01";
+
+	    // Prompt the user to enter the end date
+	    String endDate = JOptionPane.showInputDialog(this, "Enter end date (YYYY-MM-DD):");
+	    if (endDate == null) { // If user cancels the input dialog
+	        return;
+	    }
+
+	    String endDateTime = endDate + "T23:59:59";
+
+	    try {
+	        HttpClient client = HttpClient.newHttpClient();
+	        String url = String.format("http://localhost:8080/api/message/gone/%s/%s/%s", username, startDateTime, endDateTime);
+	        HttpRequest request = HttpRequest.newBuilder()
+	                .uri(URI.create(url))
+	                .header("Authorization", "Bearer " + jwtToken)
+	                .GET()
+	                .build();
+
+	        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+	        ObjectMapper mapper = new ObjectMapper();
+
+	        // Registering JavaTimeModule to handle LocalDateTime
+	        mapper.registerModule(new JavaTimeModule());
+	        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+	        List<Message> messages = mapper.readValue(response.body(), new TypeReference<List<Message>>(){});
+
+	        displaySearch("Messages between " + startDate + " and " + endDate, messages);
+
+	    } catch (IllegalArgumentException | MismatchedInputException e) {
+	        addMessage("Invalid Format in Input. Must be YYYY-MM-DD. You are back in the live chat!");
+	        
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+
+	
 	//WIP
 	private void handleExitCommand() {
 		if(messageCallback != null) {
+			if(live) {
+				messageCallback.sendMessage("/exit");
+				System.exit(0);
+			}
 			messageCallback.sendMessage("/exit");
-			System.exit(0);
 		}
+		inputTextField.setText("");
+
 	}
 	
 	//sends a message entered by the user to the message callback for further processing
@@ -181,6 +249,14 @@ public class JSwingGuiService extends JFrame{
 	//acts as a callback contract
 	public interface MessageCallback{
 		void sendMessage(String message);
+	}
+	
+	public boolean getLive() {
+		return live;
+	}
+	
+	public void setLive(boolean live) {
+		this.live = live;
 	}
 	
 	
