@@ -516,7 +516,7 @@ public class Client implements JSwingGuiService.MessageCallback{
 		try {
 			HttpResponse<String> response = httpsDAO.getMessageBetweenDates(this.username, this.jwtToken, startDateTime, endDateTime);
 
-				ObjectMapper mapper = new ObjectMapper();
+			ObjectMapper mapper = new ObjectMapper();
 
 
 			//registering JavaTimeModule to handle LocalDateTime
@@ -564,6 +564,21 @@ public class Client implements JSwingGuiService.MessageCallback{
 			
 			//reverse list so that it shows as oldest -> latest
 			Collections.reverse(messages);
+			
+			for(Message message : messages) {
+				if(message.getIsPrivate() == true)
+				{
+					String messageWithOnlyUsername = message.getMessage().split(": ", 2)[0];
+					String messageWithoutUsername = message.getMessage().split(": ", 2)[1];
+					String decodedMessage;
+					try {
+						decodedMessage = keyHolder.decrypt(messageWithoutUsername);
+					} catch (Exception e) {
+						decodedMessage = "Some sort of error has occured with decoding, check your private keys.";
+					}
+					message.setMessage(messageWithOnlyUsername + ": " + decodedMessage);
+				}
+			}
 			
 			gui.initializeClear("Welcome to Gamerchat", messages, "to search between dates type /search, then type /exit to return to live chat");
 			if(!isConsoleGui)
