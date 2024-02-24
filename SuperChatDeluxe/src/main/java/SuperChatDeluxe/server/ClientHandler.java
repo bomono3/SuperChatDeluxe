@@ -46,7 +46,6 @@ public class ClientHandler implements Runnable {
 
             try {
 				while ((clientMessage = in.readLine()) != null) {
-						System.out.println("CLIENT MESSAGE: " + clientMessage);
 						// Check for control commands and handle accordingly
 				        if ("/exit".equals(clientMessage) || "/search".equals(clientMessage)) {
 				            if("/exit".equals(clientMessage))  throw new IOException();
