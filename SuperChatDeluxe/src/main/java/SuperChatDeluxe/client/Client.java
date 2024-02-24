@@ -251,8 +251,10 @@ public class Client implements JSwingGuiService.MessageCallback{
 						gui.addMessage(message, true);
 					}
 				}
-
-				gui.addMessage(message, true);
+				else {
+						gui.addMessage(message, true);
+				}
+			
 				bufferedWriter.write(message);
 			}
 			else {
